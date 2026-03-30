@@ -1,0 +1,168 @@
+\documentclass[12pt]{report}
+\usepackage[format=plain,
+            font=it]{caption}
+%====================== PACKAGES ======================
+%Options: Sonny, Lenny, Glenn, Conny, Rejne, Bjarne, Bjornstrup
+% \usepackage{csquotes}
+\usepackage[Glenn]{fncychap} 
+\usepackage{fancyhdr}
+\usepackage[final]{pdfpages}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+%pour gérer les positionnement d'images
+\usepackage{float}
+\usepackage[sorting=none]{biblatex}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{url}
+\renewcommand{\contentsname}{Table of Contents}
+\usepackage{enumitem}
+% this is for numbering and showing (subsubsections) in the toc
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+%pour la mise en page des tableaux
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{dcolumn,ragged2e}
+\usepackage{siunitx}
+\usepackage{longtable}
+\usepackage{booktabs}   
+\usepackage{ltablex}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+%pour utiliser \floatbarrier
+\usepackage{colortbl}
+%espacement entre les lignes
+\usepackage{setspace}
+%modifier la mise en page de l'abstract
+\usepackage{abstract}
+%police et mise en page (marges) du document
+\usepackage[T1]{fontenc}
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{amsmath,amsfonts,amssymb}
+%Pour les galerie d'images
+\usepackage{makecell}
+\usepackage{multirow}
+%\usepackage{subfig}
+\usepackage{amsthm}
+\newtheorem{definition}{Définition}
+\usepackage{rotating}
+%\usepackage{multirow}
+\usepackage{xspace}
+\usepackage{wrapfig}
+\usepackage[hypertexnames=false]{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,      
+    urlcolor=black,
+    anchorcolor=black,
+    citecolor=blue,
+}
+\usepackage{subcaption}
+\usepackage{tablefootnote}
+\usepackage[acronym]{glossaries}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\addbibresource{citation.bib}
+\begin{document} 
+%%d'ici aussi
+\begin{titlepage}   
+    	\begin{minipage}{1\linewidth}
+			\centering
+			\begin{tabular}{ccc}
+				\begin{tabular}{c}
+					\\
+					\includegraphics[scale=0.07]{figures/usthb.png}
+				\end{tabular}
+				&
+				\begin{tabular}{c}
+					\\
+					\text{ République Algérienne Démocratique et Populaire}\\
+                    \text{ Ministère de l’Enseignement Supérieur et de la Recherche} \\
+                    \text{ Scientifique}\\
+				\end{tabular}
+				&
+				\begin{tabular}{c}
+					\\
+					\includegraphics[scale=0.07]{figures/usthb.png}
+				\end{tabular}
+			\end{tabular}
+		\end{minipage}
+    
+    
+       
+    \begin{center}
+        
+        \textbf{Université des Sciences et de la Technologie Houari Boumediene}\\
+        \text{Faculté d’Électronique et d’Informatique}\\
+        \text{Département d’Informatique}\\
+        \textbf{Mémoire de Master}\\
+        \text{Spécialité :}\\
+        \text{Bio-informatique}\\
+        
+        
+    \end{center}
+    \vspace*{0.5 cm}
+    \begin{center}
+    
+    \end{center}
+    
+    \rule{\linewidth}{0.2 mm}
+	{ \LARGE  
+	   \begin{center}
+	       \textbf{Thème: }\\
+	       \textbf{Optimising federated learning for healthcare applications}\\
+	       
+	   \end{center} 
+	   
+	\rule{\linewidth}{0.2 mm} \\[1.5 cm]
+	}
+	
+	\begin{minipage}{0.5\textwidth}
+		\begin{flushleft} \large
+		    \textbf{Encadré par:}\\
+		    \text{Mme Malika MEHDI-SILHADI}\\
+		    \text{Mme MEKAHLIA}\\
+		    \textbf{Membre du Jurys:}\\
+		    \text{NOM Prenom}\\
+		    \text{NOM Prenom}\\
+		    
+			\end{flushleft}
+			\end{minipage}~
+		\begin{minipage}{0.4\textwidth}
+            
+		\begin{flushright} \large
+			\textbf{Présenté par:} \\
+            \text{TALEB Youcef} \\
+            \text{BENSEFIA Yazid} \\
+            	\textbf{Soutenu le:} \\
+            \text{18/09/2022} \\
+		\end{flushright}
+	\end{minipage}\\[2 cm]
+	\begin{center}
+	    Projet:  SII\_E\_0XX / 2026
+	\end{center}
+\end{titlepage}
+%changing names%
+\renewcommand{\listfigurename}{Listes des figures}
+\renewcommand{\listtablename}{Listes des tableaux}
+
+% \include{Chapters/remerciements}
+% \include{Chapters/resume}
+% \include{Chapters/abstract}
+\hypersetup{hidelinks}
+\tableofcontents
+% \include{Chapters/acronymes}
+% \listoffigures
+% \listoftables
+% \include{Chapters/introduction}
+\include{Chapters/chapter1}
+% \include{Chapters/chapter2}
+% \include{Chapters/chapter3}
+% \include{Chapters/chapter4}
+% \include{Chapters/conclusions}
+% \include{Chapters/annexe}
+
+\printbibliography
+\end{document}

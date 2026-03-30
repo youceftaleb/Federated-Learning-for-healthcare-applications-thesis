@@ -1,0 +1,115 @@
+# ============================================================
+# LaTeX build artifacts
+# ============================================================
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.ist
+*.xdy
+*.idx
+*.ilg
+*.ind
+*.nav
+*.snm
+*.vrb
+
+# ============================================================
+# Compiled output — do not track the PDF in version control.
+# Each collaborator compiles their own local copy.
+# To share a compiled version, use GitHub Releases instead.
+# ============================================================
+main.pdf
+
+# ============================================================
+# Chapter auxiliary files
+# ============================================================
+Chapters/*.aux
+
+# ============================================================
+# Editor and OS files
+# ============================================================
+
+# VS Code
+.vscode/
+
+# TeXstudio
+*.bak
+*.backup
+
+# Overleaf sync artifacts
+.overleaf/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ============================================================
+# Python (for experiments and implementation)
+# ============================================================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# ============================================================
+# Data and model files (keep out of git — use DVC or shared storage)
+# ============================================================
+data/
+datasets/
+*.csv
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.pt
+*.pth
+*.onnx
+*.npy
+*.npz
+
+# ============================================================
+# Misc
+# ============================================================
+*.zip
+*.tar.gz
+*.log
