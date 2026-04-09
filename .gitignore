@@ -95,21 +95,31 @@ ENV/
 # Data and model files (keep out of git — use DVC or shared storage)
 # ============================================================
 data/
-datasets/
-*.csv
-*.h5
-*.hdf5
-*.pkl
-*.pickle
+# datasets/
+
+# Datasets folder handling: ignore all contents by default, but allow code and docs
+Datasets/*
+!Datasets/
+!Datasets/**/
+!Datasets/**/*.md
+!Datasets/**/*.py
+!Datasets/**/*.ipynb
+!Datasets/**/*.txt
+
+
+# Explicitly ignore common data formats if they are not already ignored
+*.dcm
+*.mha
+*.nii
+*.edf
 *.pt
 *.pth
-*.onnx
+*.h5
 *.npy
 *.npz
 
-# ============================================================
-# Misc
-# ============================================================
-*.zip
-*.tar.gz
-*.log
+*.csv
+*.hdf5
+*.pkl
+*.pickle
+
