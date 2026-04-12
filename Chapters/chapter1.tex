@@ -1,16 +1,41 @@
 \chapter{Chapter 1 -- Medical Context and AI Foundations for Healthcare Data Analysis}
 \section{Introduction}
+The deployment of artificial intelligence in healthcare does not begin with model 
+architectures or optimization algorithms, it begins with a clear understanding of 
+the environment in which those models must operate. Before a federated learning 
+system can be designed, trained, or evaluated, three fundamental questions must 
+be answered: \textit{where does the data come from and why can it not be freely 
+shared?}, \textit{what forms does that data take and what clinical phenomena does 
+it encode?}, and \textit{what computational tools are capable of extracting 
+meaningful knowledge from it?}
 
+This chapter addresses each of these questions in turn, laying the conceptual and 
+technical groundwork for the federated learning system developed in subsequent 
+chapters. The first section examines the landscape of healthcare institutions as 
+fragmented custodians of sensitive patient data. It introduces the concept of data 
+silos, discusses the technical, organizational, and legal barriers to cross-institutional 
+data sharing including the GDPR and HIPAA regulatory frameworks and motivates 
+the need for collaborative learning paradigms that respect data locality. The second 
+section characterizes the medical data modalities at the heart of this thesis.
+The nature of these data sources are discussed alongside the challenges 
+they pose for integration and analysis. The third section introduces the artificial 
+intelligence foundations required to process these modalities, covering the 
+spectrum from classical machine learning algorithms to deep learning architectures
+including CNNs, RNNs and establishing the evaluation 
+framework used throughout this work.
+
+Together, these three pillars define the problem space within which federated learning is positioned 
+as both a necessary and principled response.
 
 \section{Healthcare Data and Collaborating Institutions}
 
-Healthcare data is one of the most valuable and sensitive types of information in modern society, as it contains detailed records about patients’ physiological conditions, diagnoses, treatments, and outcomes \cite{rumsfeld2016big}. These data are generated and collected across a wide range of healthcare institutions, including hospitals, specialized clinics, general practitioner offices, and research centers. Each institution typically maintains its own information systems and databases, resulting in fragmented data storage and limited interoperability across institutions \cite{jensen2012mining}.
+Healthcare data is one of the most valuable and sensitive types of information in modern society, as it contains detailed records about patients’ physiological conditions, diagnoses, treatments, and outcomes \cite{olivia2026secure}. These data are generated and collected across a wide range of healthcare institutions, including hospitals, specialized clinics, general practitioner offices, and research centers. Each institution typically maintains its own information systems and databases, resulting in fragmented data storage and limited interoperability across institutions \cite{jensen2012mining}.
 
 \subsection{Healthcare Institutions and Data Silos}
 
 Healthcare institutions differ in scale, specialization, and technological infrastructure. Large hospitals often rely on Electronic Health Records (EHRs), which store structured data such as laboratory results and prescriptions, as well as unstructured data such as clinical notes and medical reports \cite{jensen2012mining}. In contrast, specialized centers may generate high-dimensional data such as medical imaging or physiological signals like electroencephalography (EEG).
 
-This heterogeneity contributes to the emergence of \textit{data silos}, which refer to isolated repositories of data that are not easily accessible or shareable across systems or institutions. Data silos arise due to differences in database formats, lack of interoperability standards, and institutional policies restricting data access. As a result, the potential of large-scale data analysis and machine learning is significantly limited, since robust models require diverse and representative datasets \cite{mandl2001public}.
+This heterogeneity contributes to the emergence of \textit{data silos}, which refer to isolated repositories of data that are not easily accessible or shareable across systems or institutions. Data silos arise due to differences in database formats, lack of interoperability standards, and institutional policies restricting data access. As a result, the potential of large-scale data analysis and machine learning is significantly limited, since robust models require diverse and representative datasets \cite{Peeyush2025healthcare}.
 
 \subsection{Challenges of Data Sharing in Healthcare}
 
@@ -18,7 +43,7 @@ Sharing healthcare data across institutions is a complex process that involves m
 
 Second, \textbf{organizational challenges} play a major role. Healthcare institutions may be reluctant to share data due to concerns about data ownership, competitive advantage, or administrative complexity. Establishing agreements for data sharing often requires significant coordination and trust between stakeholders.
 
-Third, \textbf{privacy and security concerns} are critical. Healthcare data contains highly sensitive personal information, and any breach or misuse can have severe consequences for patients. Therefore, strict measures must be taken to ensure data confidentiality, integrity, and secure access \cite{shickel2017deep}.
+Third, \textbf{privacy and security concerns} are critical. Healthcare data contains highly sensitive personal information, and any breach or misuse can have severe consequences for patients. Therefore, strict measures must be taken to ensure data confidentiality, integrity, and secure access \cite{olivia2026secure}.
 
 \subsection{Legal and Ethical Constraints (GDPR, HIPAA)}
 
@@ -32,49 +57,33 @@ These regulations highlight the importance of developing methods that enable dat
 
 Given the challenges associated with data sharing, there is a growing need for approaches that allow collaborative analysis without requiring direct data exchange. Traditional centralized machine learning approaches, which rely on aggregating all data into a single repository, are often impractical in healthcare due to regulatory and privacy constraints.
 
-As a result, distributed learning paradigms have emerged as a promising alternative. These approaches enable multiple institutions to collaboratively train models while keeping the data locally stored. Such strategies allow leveraging large-scale, diverse datasets while preserving data privacy, thereby addressing one of the key limitations of conventional machine learning in healthcare \cite{kairouz2021advances}.
+As a result, distributed learning paradigms such as \textbf{Federated learning} have emerged as a promising alternative. These approaches enable multiple institutions to collaboratively train models while keeping the data locally stored. Such strategies allow leveraging large-scale, diverse datasets while preserving data privacy, thereby addressing one of the key limitations of conventional machine learning in healthcare \cite{kairouz2021advances}.
 
 
 
 \section{Medical Data Modalities}
 
-Healthcare data is inherently heterogeneous, encompassing multiple modalities that differ in structure, dimensionality, and acquisition processes. These modalities include physiological signals, medical imaging, and structured clinical data, each providing complementary information about patient health. The integration of such diverse data sources is essential for accurate diagnosis, prognosis, and personalized treatment, but it also introduces significant computational and methodological challenges \cite{esteva2019guide}.
-
-\subsection{EEG Signals}
-
-\subsubsection{Definition and Characteristics}
-
-Electroencephalography (EEG) is a non-invasive technique used to record electrical activity generated by the brain through electrodes placed on the scalp. EEG signals are time-series data characterized by high temporal resolution, typically measured in milliseconds, which makes them particularly suitable for capturing dynamic neural processes \cite{niedermeyer2005eeg}.
-
-EEG signals are commonly analyzed in both the time and frequency domains, as brain activity exhibits oscillatory patterns that can be decomposed into distinct frequency bands. These oscillations reflect different physiological and cognitive states, and their analysis provides valuable insights into brain function \cite{lopes2010eeg, eeg2015bands}.
-
-EEG signals are typically categorized into several frequency bands, each associated with specific neurological activities:
-
-\begin{itemize}
-    \item \textbf{Delta waves} (0.5–4 Hz): primarily associated with deep sleep and unconscious states \cite{niedermeyer2005eeg}.
-    \item \textbf{Theta waves} (4–8 Hz): linked to drowsiness, meditation, and memory-related processes \cite{klimesch1999eeg}.
-    \item \textbf{Alpha waves} (8–13 Hz): dominant during relaxed wakefulness, particularly with closed eyes \cite{eeg2015bands}.
-    \item \textbf{Beta waves} (13–30 Hz): associated with active thinking, concentration, and problem-solving \cite{pfurtscheller1999event}.
-    \item \textbf{Gamma waves} (>30 Hz): related to higher cognitive functions such as perception and consciousness \cite{buzsaki2006rhythms}.
-\end{itemize}
-
-The analysis of these frequency bands is particularly important in clinical contexts, as abnormal patterns in specific bands can indicate neurological disorders. In the case of epilepsy, for example, characteristic disruptions and spikes in EEG signals can be observed across different frequency ranges, making spectral analysis a key tool for detection and diagnosis.
-
-However, EEG signals are often noisy, non-stationary, and highly sensitive to external artifacts such as muscle movements and environmental interference, making their analysis challenging.
-
-\subsubsection{EEG in Neurological Disease Monitoring}
-
-EEG plays a critical role in the monitoring and diagnosis of neurological disorders. It is widely used to study brain activity patterns associated with conditions such as epilepsy, sleep disorders, and brain injuries. Machine learning and deep learning techniques have increasingly been applied to EEG data to automate the detection of abnormal patterns and improve diagnostic accuracy \cite{roy2019deep}. These approaches leverage the temporal structure of EEG signals to identify subtle variations that may not be easily detectable by clinicians.
-
-\subsubsection{Epilepsy: Definition, Types, and Clinical Context}
-
-Epilepsy is a chronic neurological disorder characterized by recurrent, unprovoked seizures resulting from abnormal electrical activity in the brain. It affects millions of individuals worldwide and presents in various forms, including focal seizures and generalized seizures \cite{who2019epilepsy}. EEG remains a primary tool for epilepsy diagnosis, as it allows clinicians to observe characteristic patterns such as spikes and wave discharges. The complexity and variability of EEG signals in epileptic patients make this domain particularly suitable for advanced machine learning applications.
+Healthcare data is inherently heterogeneous, encompassing multiple modalities that differ in structure, dimensionality, and acquisition processes. These modalities include physiological signals, medical imaging, and structured clinical data, each providing complementary information about patient health. The integration of such diverse data sources is essential for accurate diagnosis, prognosis, and personalized treatment, but it also introduces significant computational and methodological challenges \cite{kus2024medseg}.
 
 \subsection{Medical Imaging}
 
 \subsubsection{Overview of Medical Imaging Modalities}
 
-Medical imaging provides visual representations of internal body structures and is a cornerstone of modern diagnostic medicine. Common imaging modalities include X-ray, Computed Tomography (CT), Magnetic Resonance Imaging (MRI), and ultrasound, each offering distinct advantages in terms of resolution, contrast, and clinical applicability \cite{litjens2017survey}. These imaging techniques generate high-dimensional data that require specialized processing methods for analysis.
+Medical imaging provides visual representations of internal body structures and is a cornerstone of modern diagnostic medicine. Common imaging modalities include X-ray, Computed Tomography (CT), Magnetic Resonance Imaging (MRI), and ultrasound, each offering distinct advantages in terms of resolution, contrast, and clinical applicability \cite{kus2024medseg}. These imaging techniques generate high-dimensional data that require specialized processing methods for analysis.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figures/xray_mri_ct.jpg}
+    \caption{Medical Imaging Modalities Comparison: X-ray, CT, and MRI \cite{perlove2025imaging}}
+    \label{fig:xray_mri_ct}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/medical_imaging_modalities.png}
+    \caption{Medical imaging modalities \cite{medImaging2025}}
+    \label{fig:imaging_modalities}
+\end{figure}
 
 \subsubsection{Cancer Sub-Types and Imaging-Based Diagnosis}
 
@@ -90,129 +99,38 @@ The integration of multiple medical data modalities presents significant challen
 
 From a machine learning perspective, combining multimodal data can improve model performance by capturing complementary information. However, it also increases model complexity and computational cost. These challenges are further amplified in distributed settings, where data are stored across multiple institutions, reinforcing the need for advanced learning paradigms capable of handling multimodal and decentralized data \cite{ngiam2011multimodal}.
 
-\section{Artificial Intelligence in Healthcare}
-
-Artificial intelligence (AI) refers to the branch of computer science that aims to develop systems capable of performing tasks that typically require human intelligence, such as reasoning, perception, and decision-making \cite{russell2016ai}. In healthcare, AI has shown significant potential to improve disease diagnosis, prognosis, and patient management by leveraging large and complex medical datasets.
-
-\subsection{Machine Learning}
-
-\subsubsection{Definition}
-
-Machine learning (ML) is a subfield of AI in which algorithms automatically learn patterns from data to make predictions or decisions without explicit programming \cite{mitchell1997machine}. ML models are trained using historical patient data, such as clinical records, laboratory tests, or medical imaging, and can then generalize to unseen cases. In healthcare, ML has been applied for tasks such as disease classification, risk prediction, and patient outcome forecasting.
-
-\subsubsection{Types of Machine Learning}
-
-\paragraph{Supervised Learning}  
-Supervised learning involves training a model on labeled data, where each input is associated with a known output or target variable. The model learns a mapping function $f: X \rightarrow Y$, where $X$ represents input features and $Y$ the target labels. Examples in healthcare include tumor classification from imaging data and predicting patient readmission rates \cite{esteva2017dermatologist}.
-
-\paragraph{Unsupervised Learning}  
-Unsupervised learning deals with unlabeled data, where the algorithm identifies patterns or groupings within the dataset. Common methods include clustering and dimensionality reduction. In healthcare, unsupervised learning can uncover hidden subgroups of patients, aiding in personalized treatment strategies \cite{hinton2006reducing}.
-
-\paragraph{Semi-Supervised Learning}  
-Semi-supervised learning is used when labeled data is limited but unlabeled data is abundant. This approach is particularly relevant in medical applications, where annotating data (e.g., segmenting tumors) is costly and time-consuming \cite{chapelle2009semi}.
-
-\paragraph{Reinforcement Learning}  
-Reinforcement learning (RL) involves an agent that interacts with an environment to learn optimal policies through trial and error. In healthcare, RL has been explored for sequential treatment planning and personalized therapy optimization \cite{gottesman2019guidelines}.
-
-\subsubsection{Popular Machine Learning Algorithms}
-
-\begin{itemize}
-    \item \textbf{Logistic Regression}: Used for binary or multi-class classification; predicts the probability of a class using a logistic function.
-    \item \textbf{Decision Trees}: Hierarchical structures that split data based on feature values; interpretable and widely used in clinical decision support.
-    \item \textbf{Random Forest}: Ensemble of decision trees; improves generalization and reduces overfitting.
-    \item \textbf{Support Vector Machines (SVM)}: Finds the hyperplane that maximally separates classes in feature space.
-    \item \textbf{k-Nearest Neighbors (k-NN)}: Classifies samples based on the majority label of their k nearest neighbors.
-    \item \textbf{Gradient Boosting / XGBoost}: Ensemble methods that sequentially train weak learners to correct previous errors.
-\end{itemize}
-
-\subsubsection{Challenges of Machine Learning in Healthcare}
-
-Healthcare data presents several challenges for ML, including heterogeneity of data modalities, class imbalance (e.g., rare diseases), missing values, and the need for interpretability and privacy preservation \cite{miotto2018deep}.
-
-\subsection{Deep Learning}
-
-\subsubsection{Definition and Principles}
-
-Deep learning (DL) is a subset of machine learning that uses artificial neural networks with multiple layers to automatically learn hierarchical feature representations from raw data \cite{lecun2015deep}. A typical neural network consists of an input layer, one or more hidden layers, and an output layer. Each neuron applies a weighted sum of its inputs followed by a non-linear activation function $f$:
-
-\[
-y = f\left(\sum_{i=1}^{n} w_i x_i + b\right)
-\]
-
-where $w_i$ are weights, $x_i$ are inputs, $b$ is the bias, and $f$ is an activation function such as ReLU, sigmoid, or softmax.
-
-\subsubsection{Artificial Neural Networks (ANNs)}
-
-ANNs are the basic building blocks of deep learning. They can approximate complex, non-linear functions and are trained using backpropagation, which computes gradients of the loss function with respect to weights and updates them using an optimizer such as stochastic gradient descent (SGD) or Adam \cite{kingma2014adam}.
-
-\subsubsection{Convolutional Neural Networks (CNNs)}
-
-CNNs are specialized neural networks for grid-like data, such as images. Key components include:
-
-\begin{itemize}
-    \item \textbf{Convolutional layers}: Apply filters (kernels) to extract spatial features.
-    \item \textbf{Pooling layers}: Reduce spatial dimensions, retaining essential information.
-    \item \textbf{Fully connected layers}: Combine extracted features for final classification.
-\end{itemize}
-
-CNNs have been successfully applied in radiology for detecting tumors, lesions, and other abnormalities in imaging data \cite{litjens2017survey}.
-
-\subsubsection{Recurrent Neural Networks (RNNs)}
-
-RNNs are designed for sequential data, where each output depends on previous computations. Long Short-Term Memory (LSTM) and Gated Recurrent Unit (GRU) networks address long-term dependencies, making them suitable for EEG and ECG signal analysis \cite{lipton2015critical}.
-
-\subsubsection{Deep Learning for Medical Data}
-
-Deep learning can process diverse medical modalities, including imaging (CNNs), temporal signals like EEG/ECG (RNNs), and multimodal fusion combining clinical, imaging, and genomic data \cite{miotto2018deep}. DL models can automatically learn hierarchical features, reducing the need for manual feature engineering.
-
-\subsection{Model Evaluation Metrics}
-
-\subsubsection{Classification Metrics}
-
-\begin{itemize}
-    \item \textbf{Accuracy}: Fraction of correctly predicted instances.  
-    \item \textbf{Precision}: Fraction of true positives among predicted positives.  
-    \item \textbf{Recall (Sensitivity)}: Fraction of true positives among actual positives.  
-    \item \textbf{F1-Score}: Harmonic mean of precision and recall:
-    \[
-    F1 = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision + Recall}}
-    \]
-\end{itemize}
-
-\subsubsection{Confusion Matrix}
-
-The confusion matrix provides a complete summary of prediction performance, showing true positives (TP), false positives (FP), true negatives (TN), and false negatives (FN).
-
-\subsubsection{ROC Curve and AUC}
-
-The Receiver Operating Characteristic (ROC) curve plots the true positive rate against the false positive rate at various thresholds. The area under the curve (AUC) measures the classifier’s discrimination ability.
-
-\subsubsection{Optimizers and Loss Functions}
-
-Common optimizers include stochastic gradient descent (SGD), Adam, and RMSProp. Loss functions quantify the model error; for classification, cross-entropy loss is widely used:
-
-\[
-L = - \sum_{i=1}^{N} y_i \log(\hat{y}_i)
-\]
-
-where $y_i$ is the true label and $\hat{y}_i$ is the predicted probability.
-
-\subsubsection{Overfitting and Regularization}
-
-Overfitting occurs when a model memorizes training data but fails to generalize. Regularization techniques include L1/L2 penalties, dropout, and early stopping.
-
 % ============================================================
 \section{Artificial Intelligence in Healthcare}
 % ============================================================
 
-Artificial intelligence (AI) refers to the branch of computer science that aims to develop 
+\textbf{Artificial intelligence (AI)} refers to the branch of computer science that aims to develop 
 systems capable of performing tasks that typically require human intelligence, such as 
-reasoning, perception, and decision-making \cite{russell2016ai}. In healthcare, AI has shown 
-significant potential to transform disease diagnosis, prognosis, and patient management by 
-leveraging large and complex medical datasets — including clinical records, medical images, 
-and biosignals such as electroencephalograms (EEG). The following sections present the 
+reasoning, perception, and decision-making \cite{russell2016artificial}.
+
+\textbf{Machine learning (ML)} is a subfield of AI which aims to create systems
+that learns from data. ML algorithms are trained to find relationships
+and patterns in data. They use historical data as input to make predictions,
+classify information, group data into clusters, reduce dimensionality,
+and even help generate new content.
+
+\textbf{Deep learning (DL)} is an advanced
+branch of ML that uses artificial neural networks designed to function
+like the human brain, in order to model and understand complex data.
+
+In healthcare, AI has shown significant potential to transform disease
+diagnosis, prognosis, and patient management by
+leveraging large and complex medical datasets including clinical records, medical images,
+and biosignals, etc. The following sections present the
 foundational AI concepts that underpin this work, from classical machine learning to deep 
 learning architectures, along with the evaluation framework used to assess model performance.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/AI_ML_DL_circles.jpeg}
+    \caption{Relationship between AI, ML and DL \cite{ai_ml_dl2020daniel}}
+    \label{fig:ai_ml_dl}
+\end{figure}
+
 
 % ============================================================
 \subsection{Machine Learning}
@@ -222,44 +140,125 @@ learning architectures, along with the evaluation framework used to assess model
 
 Machine learning (ML) is a subfield of AI in which algorithms automatically learn patterns 
 from data to make predictions or decisions without being explicitly programmed for each 
-task \cite{mitchell1997machine}. ML models are trained on historical data — such as patient 
-clinical records, laboratory results, or annotated medical images — and are then expected 
-to generalize to unseen cases. In healthcare, ML has been applied to a wide range of 
+task. ML models are trained on historical data such as patient 
+clinical records, laboratory results, or annotated medical images and are then expected 
+to generalize to unseen cases. the idea is to pass data (features) and answers (labels)
+into some algorithm and have the algorithm (model) try to figure out the rules
+of producing those outcomes (labels). This approach however is only possible
+if you have a large dataset that you can pass to some model to which it will attempt
+and produce the rules to which that dataset and labels came from \cite{ibmml}.
+In healthcare, ML has been applied to a wide range of 
 problems including disease classification, survival prediction, patient stratification, 
 and clinical decision support.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/ml_vs_cp.jpg}
+    \caption{Machine learning programming paradigm \cite{tafadzwa2024aimldl}}
+    \label{fig:mlvscp}
+\end{figure}
 
 % ------------------------------------------------------------
 \subsubsection{Types of Machine Learning}
 % ------------------------------------------------------------
+There some variations of how to define the types of Machine Learning
+Algorithms but commonly they can be divided into categories according
+to their purpose which each having special characteristics and applications.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/ml_types.jpg}
+    \caption{Machine learning types \cite{priyanka2020mltypes}}
+    \label{fig:mltypes}
+\end{figure}
 
 \paragraph{Supervised Learning}
-Supervised learning involves training a model on a labeled dataset, where each input sample 
+involves training a model on a labeled dataset, where each input sample 
 $\mathbf{x} \in \mathcal{X}$ is paired with a known output $y \in \mathcal{Y}$. The model 
 learns a mapping function $f: \mathcal{X} \rightarrow \mathcal{Y}$ by minimizing a loss 
-function over the training data. In healthcare, supervised learning is the most widely 
+function over the training data.
+There are two main categories of supervised learning:
+
+\textbf{Regression algorithms} predict output values by identifying linear 
+relationships between real or continuous values (e.g., temperature, salary).
+Regression algorithms include linear regression, random forest and gradient boosting,
+as well as other subtypes.
+
+\textbf{Classification algorithms} predict categorical output variables 
+(e.g., “spam” or “not spam”) by labeling pieces of input data. 
+Classification algorithms include logistic regression, k-nearest 
+neighbors and support vector machines (SVMs), among others \cite{ibmmltypes}.
+
+In healthcare, supervised learning is the most widely 
 used paradigm, with applications including tumor classification from imaging data, 
 epilepsy detection from EEG signals, and prediction of patient readmission 
-rates \cite{esteva2017dermatologist}.
+rates.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/supervised_learning.jpg}
+    \caption{Supervised learning schema \cite{geeksforgeeks2026mltypes}}
+    \label{fig:supervised}
+\end{figure}
 
 \paragraph{Unsupervised Learning}
-Unsupervised learning deals with unlabeled data, where the algorithm seeks to discover 
+deals with unlabeled data, where the algorithm seeks to discover 
 hidden structure or groupings within the dataset. Common techniques include clustering 
-(e.g., K-means, DBSCAN) and dimensionality reduction (e.g., PCA, autoencoders). In 
-healthcare, unsupervised methods are used to identify patient subgroups, uncover latent 
-disease phenotypes, and support exploratory data analysis \cite{hinton2006reducing}.
+(e.g., K-means, DBSCAN) and dimensionality reduction (e.g., PCA, autoencoders).
+Unlike supervised learning, there
+is no predefined correct output; the algorithm’s objective is to autonomously
+explore the data to extract meaningful structures. Its
+task is to discover hidden patterns, clusters, or relationships directly
+from the input data \cite{ibmmltypes}.
+
+In healthcare, unsupervised methods are used to identify patient subgroups,
+uncover latent disease phenotypes, and support exploratory data analysis.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/unsupervised_learning.jpg}
+    \caption{Unsupervised learning schema \cite{geeksforgeeks2026mltypes}}
+    \label{fig:unsupervised}
+\end{figure}
 
 \paragraph{Semi-Supervised Learning}
-Semi-supervised learning combines a small amount of labeled data with a large pool of 
+combines a small amount of labeled data with a large pool of 
 unlabeled data during training. This paradigm is particularly relevant in medical 
-applications, where expert annotation of data — such as delineating tumor boundaries 
-in MRI scans or labeling EEG episodes — is expensive, time-consuming, and requires 
-specialized clinical knowledge \cite{chapelle2009semi}.
+applications, where expert annotation of data such as delineating tumor boundaries 
+in MRI scans is expensive, time-consuming, and requires 
+specialized clinical knowledge so it aims to leverage the structure of
+the unlabeled data to improve the performance of the prediction task,
+which would otherwise be limited by the small amount of labeled
+data\cite{ibmmltypes}\cite{chapelle2006semi}.
 
-\paragraph{Reinforcement Learning}
-Reinforcement learning (RL) involves an agent that learns optimal decision-making 
-policies by interacting with an environment and receiving reward signals. In healthcare, 
-RL has been explored for sequential treatment planning, dynamic dosage optimization, 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/semi-learning.jpg}
+    \caption{Semi-supervised learning schema \cite{geeksforgeeks2026mltypes}}
+    \label{fig:semi-supervised}
+\end{figure}
+
+\paragraph{Reinforcement Learning (RL)}
+involves an agent that learns optimal decision-making 
+policies by interacting with an environment and receiving reward signals.
+Reinforcement learning involves learning through trial and error by interacting with
+the environment. Each action generates a reward, and the goal is to find the optimal
+strategy that maximizes the total reward. The system learns solely from the reinforcement
+signal—that is, feedback from its actions. This approach is particularly well-suited for
+dynamic environments such as high-frequency trading, where manually defining effective
+strategies is difficult \cite{ibmmltypes}.
+
+In healthcare,RL has been explored for sequential treatment planning,
+dynamic dosage optimization, 
 and personalized therapy recommendation \cite{gottesman2019guidelines}.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/agent.jpg}
+    \caption{Reinforcement learning schema \cite{geeksforgeeks2026mltypes}}
+    \label{fig:RL}
+\end{figure}
 
 % ------------------------------------------------------------
 \subsubsection{Common Machine Learning Algorithms}
@@ -270,33 +269,318 @@ tasks. The most relevant to this work are briefly described below:
 
 \begin{itemize}
 
-    \item \textbf{Logistic Regression}: A probabilistic linear classifier that estimates 
-    the probability of class membership using a sigmoid function. Despite its simplicity, 
-    it provides interpretable outputs and serves as a useful baseline in clinical settings.
+    \item \textbf{Logistic Regression}: supervised machine learning algorithm used 
+    for binary classification tasks, where the objective is to model the 
+    probability that a given input belongs to a particular class \cite{ibmlogistic}.
+    Given an input feature vector $x = (x_1, x_2, \dots, x_n)$, the model 
+    computes a linear combination of the inputs:
 
-    \item \textbf{Decision Trees}: Hierarchical structures that recursively partition the 
-    feature space based on threshold conditions. They are highly interpretable and form 
-    the basis for more powerful ensemble methods.
+    \[
+    z = w^T x + b = \sum_{i=1}^{n} w_i x_i + b
+    \]
 
-    \item \textbf{Random Forest}: An ensemble of decision trees trained on bootstrapped 
-    subsets of the data. By averaging predictions across trees, Random Forest reduces 
-    variance and improves generalization, making it effective for high-dimensional 
-    biomedical datasets \cite{breiman2001random}.
+    where $w = (w_1, w_2, \dots, w_n)$ represents the weight vector and $b$ is
+    the bias term. This linear output is then passed through the sigmoid 
+    (logistic) function \ref{fig:sigmoid} to obtain a probability value between 0 and 1:
 
-    \item \textbf{Support Vector Machines (SVM)}: Discriminative classifiers that find 
-    the maximum-margin hyperplane separating classes in feature space. Through the kernel 
-    trick, SVMs can model non-linear decision boundaries and have been extensively used 
-    in EEG-based BCI classification and cancer detection tasks.
+    \[
+    \sigma(z) = \frac{1}{1 + e^{-z}}
+    \]
 
-    \item \textbf{k-Nearest Neighbors (k-NN)}: A non-parametric classifier that assigns 
-    a label based on the majority class among the $k$ nearest samples in feature space. 
-    Simple but sensitive to data dimensionality and scaling.
+    Thus, the predicted probability is given by:
 
-    \item \textbf{XGBoost / Gradient Boosting}: Sequential ensemble methods that build 
-    an additive model by fitting each new learner to the residual errors of the previous 
-    one. XGBoost in particular has demonstrated strong performance on structured clinical 
-    and tabular medical data \cite{chen2016xgboost}.
+    \[
+    P(y = 1 \mid x) = \sigma(w^T x + b)
+    \]
 
+        The model is trained by minimizing the binary cross-entropy loss function:
+
+    \[
+    \mathcal{L}(w, b) = - \frac{1}{m} \sum_{i=1}^{m} \left[ y^{(i)} \log(\hat{y}^{(i)}) + (1 - y^{(i)}) \log(1 - \hat{y}^{(i)}) \right]
+    \]
+
+    where $m$ is the number of training samples, $y^{(i)}$ is the true label, 
+    and $\hat{y}^{(i)}$ is the predicted probability. Optimization is typically
+    performed using gradient descent, where the parameters $w$ and $b$ are 
+    iteratively updated to minimize the loss. Logistic regression is widely 
+    used in medical applications due to its simplicity, interpretability, and
+    effectiveness in modeling binary outcomes such as disease presence or 
+    absence.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/Sigmoid-Activation-Function.png}
+        \caption{the Sigmoid function \cite{geeksforgeeks2025sigmoid}}
+        \label{fig:sigmoid}
+    \end{figure}
+
+    \item \textbf{Decision Trees}: supervised machine learning models used for both 
+    classification and regression tasks, which operate by recursively 
+    partitioning the input feature space into subsets based on decision 
+    rules. Given a dataset, the model selects features and corresponding 
+    thresholds to split the data in a way that maximizes class separation. 
+    At each node, the quality of a split is evaluated using an impurity 
+    measure such as entropy or Gini index \cite{ibmdecision}. The entropy of a node is defined as:
+
+    \[
+    H(S) = - \sum_{k=1}^{K} p_k \log_2(p_k)
+    \]
+
+    where $p_k$ is the proportion of samples belonging to class $k$ in the 
+    subset $S$, and $K$ is the number of classes. Alternatively, the Gini 
+    impurity is given by:
+
+    \[
+    G(S) = 1 - \sum_{k=1}^{K} p_k^2
+    \]
+
+    The objective is to choose the split that minimizes impurity in the 
+    resulting subsets. For entropy, this is achieved by maximizing the 
+    information gain:
+
+    \[
+    IG(S, A) = H(S) - \sum_{v \in Values(A)} \frac{|S_v|}{|S|} H(S_v)
+    \]
+
+    where $A$ is the feature used for splitting, $S_v$ is the subset of 
+    samples where feature $A$ takes value $v$, and $|S|$ denotes the number 
+    of samples. The tree is grown recursively until a stopping criterion is 
+    met, such as reaching a maximum depth or having a minimum number of 
+    samples per leaf. Decision trees are particularly useful in healthcare
+    due to their interpretability, as the resulting model can be visualized 
+    as a set of human-readable decision rules for diagnosis and prediction 
+    tasks.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/DecisionTree.jpg}
+        \caption{Decision tree example \cite{ibmdecision}}
+        \label{fig:dt}
+    \end{figure}
+
+    \item \textbf{Random Forest}: Random forests are ensemble 
+    learning methods that improve the performance and robustness of 
+    decision trees by combining multiple trees trained on different 
+    subsets of the data. Instead of relying on a single tree, a random 
+    forest constructs $T$ independent decision trees and aggregates their 
+    predictions. Each tree is trained on a bootstrap sample drawn with 
+    replacement from the original dataset, a process known as bagging. 
+    Additionally, at each split, only a random subset of features is 
+    considered, which introduces further diversity among the trees and 
+    reduces overfitting.
+
+    For a classification task, each individual tree $h_t(x)$ outputs a 
+    class prediction, and the final prediction of the random forest is 
+    obtained by majority voting:
+
+    \[
+    \hat{y} = \mathrm{mode} \{ h_1(x), h_2(x), \dots, h_T(x) \}
+    \]
+
+    For regression tasks, the prediction is typically the average of the 
+    outputs:
+
+    \[
+    \hat{y} = \frac{1}{T} \sum_{t=1}^{T} h_t(x)
+    \]
+
+    The use of bootstrap sampling and random feature selection ensures 
+    that the individual trees are decorrelated, which reduces the variance
+    of the overall model without significantly increasing bias. As a 
+    result, random forests achieve better generalization performance 
+    compared to a single decision tree. In healthcare applications, they 
+    are widely used for classification and risk prediction tasks, as they
+    can handle high-dimensional data, capture complex feature interactions,
+    and provide measures of feature importance that help interpret the 
+    contribution of different clinical variables. They also have applications within computational 
+    biology, allowing doctors to tackle problems such as gene expression 
+    classification, biomarker discovery, and sequence annotation. As a 
+    result, doctors can make estimates around drug responses to specific
+    medications \cite{ibmrandom}.
+
+    \item \textbf{Support Vector Machines (SVM)}: supervised machine 
+    learning algorithms used for classification and regression tasks, 
+    which aim to find an optimal decision boundary that maximizes the 
+    separation between classes. Given a training dataset 
+    $\{(x_i, y_i)\}_{i=1}^{m}$ where $x_i \in \mathbb{R}^n$ 
+    and $y_i \in \{-1, +1\}$, SVM seeks a hyperplane defined as:
+
+    \[
+    w^T x + b = 0
+    \]
+
+    where $w$ is the weight vector and $b$ is the bias term. The goal is 
+    to find the hyperplane that maximizes the margin, defined as the 
+    distance between the hyperplane and the nearest data points from each 
+    class, known as support vectors. This leads to the following 
+    optimization problem:
+
+    \[
+    \min_{w, b} \frac{1}{2} \|w\|^2
+    \quad \text{subject to} \quad y_i (w^T x_i + b) \geq 1, \; \forall i
+    \]
+
+    This formulation corresponds to the hard-margin SVM, which assumes 
+    that the data is linearly separable. In practice, real-world data is 
+    often not perfectly separable, and a soft-margin SVM is used by 
+    introducing slack variables $\xi_i$ to allow some misclassification:
+
+    \[
+    \min_{w, b, \xi} \frac{1}{2} \|w\|^2 + C \sum_{i=1}^{m} \xi_i
+    \quad \text{subject to} \quad y_i (w^T x_i + b) \geq 1 - \xi_i, \; \xi_i \geq 0
+    \]
+
+    where $C$ is a regularization parameter that controls the trade-off
+     between maximizing the margin and minimizing classification errors. 
+     For nonlinearly separable data, SVM employs the kernel trick, which 
+     maps the input data into a higher-dimensional feature space using a 
+     kernel function $K(x_i, x_j)$, allowing linear separation in that 
+     space without explicitly computing the transformation. Common kernel 
+     functions include the linear, polynomial, and radial basis function 
+     (RBF) kernels.
+
+    SVMs are widely used in healthcare applications due to their ability 
+    to handle high-dimensional data and their robustness to overfitting, 
+    making them suitable for tasks such as medical image classification, 
+    disease diagnosis, and bioinformatics analysis \cite{ibmsvm}.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/svm-classifier.jpg}
+        \caption{SVM classifier \cite{ibmsvm}}
+        \label{fig:svm}
+    \end{figure}
+
+    \item \textbf{k-Nearest Neighbors (k-NN)}: is a non-parametric, 
+    instance-based supervised learning method used for both classification
+     and regression tasks. Unlike parametric models, KNN does not assume 
+     any underlying distribution for the data; instead, it relies on the 
+     principle that similar data points tend to be located close to each 
+     other in the feature space. Given a query point $x$, the algorithm 
+     identifies the $k$ closest samples from the training dataset and 
+     assigns a class label based on a majority voting scheme among these 
+     neighbors.
+
+    Formally, let $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^{N}$ be the training dataset. For a new observation $x$, the predicted class $\hat{y}$ is given by:
+
+    \begin{equation}
+    \hat{y} = \arg\max_{c \in \mathcal{C}} \sum_{i \in \mathcal{N}_k(x)} \mathbb{I}(y_i = c)
+    \end{equation}
+
+    where $\mathcal{N}_k(x)$ denotes the set of the $k$ nearest neighbors 
+    of $x$, and $\mathbb{I}(\cdot)$ is the indicator function.
+    The notion of “nearness” is defined through a distance metric. The most 
+    commonly used one is the Euclidean distance:
+
+    \begin{equation}
+    d(x, x_i) = \sqrt{\sum_{j=1}^{d} (x_j - x_{i,j})^2}
+    \end{equation}
+
+    Other distance metrics may also be used depending on the data 
+    characteristics, such as the Manhattan distance:
+
+    \begin{equation}
+    d(x, x_i) = \sum_{j=1}^{d} |x_j - x_{i,j}|
+    \end{equation}
+
+    or the more general Minkowski distance:
+
+    \begin{equation}
+    d(x, x_i) = \left( \sum_{j=1}^{d} |x_j - x_{i,j}|^p \right)^{1/p}
+    \end{equation}
+
+    The choice of the parameter $k$ plays a critical role in the 
+    performance of the model. Small values of $k$ may lead to overfitting 
+    and high variance, while large values may smooth the decision boundary 
+    and introduce bias. Typically, $k$ is selected using cross-validation.
+
+    One of the main advantages of KNN is its simplicity and ability to 
+    adapt to new data without retraining. However, it suffers from high 
+    computational complexity during inference, as all training samples must
+     be considered. Additionally, KNN is sensitive to the curse of 
+     dimensionality, which can degrade its performance in high-dimensional 
+     spaces. KNN has also had application within the healthcare industry, 
+     making predictions on the risk of heart attacks and prostate cancer. 
+     The algorithm works by calculating the most likely gene expressions \cite{ibmknn}.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/KNN.jpg}
+        \caption{Knn example \cite{ibmknn}}
+        \label{fig:knn}
+    \end{figure}
+
+
+    \item \textbf{Naive Bayes} is a probabilistic supervised learning 
+    algorithm based on Bayes’ theorem, widely used for classification 
+    tasks. It is called “naive” because it assumes that all features are 
+    conditionally independent given the class label, an assumption that 
+    rarely holds in practice but often yields good performance.
+
+    Bayes’ theorem provides the foundation of the model and is expressed as:
+
+    \begin{equation}
+    P(C \mid X) = \frac{P(X \mid C)\, P(C)}{P(X)}
+    \end{equation}
+
+    where $C$ denotes a class label and $X = (x_1, x_2, \dots, x_n)$ represents
+     the feature vector. $P(C \mid X)$ is the posterior probability,
+    $P(X \mid C)$ is the likelihood, $P(C)$ is the prior probability 
+    of the class, and $P(X)$ is the evidence.
+    Under the naive independence assumption, the likelihood can be 
+    decomposed as:
+
+    \begin{equation}
+    P(X \mid C) = \prod_{i=1}^{n} P(x_i \mid C)
+    \end{equation}
+
+    Thus, the posterior probability becomes:
+
+    \begin{equation}
+    P(C \mid X) \propto P(C) \prod_{i=1}^{n} P(x_i \mid C)
+    \end{equation}
+
+    The predicted class $\hat{C}$ is obtained by maximizing this posterior:
+
+    \begin{equation}
+    \hat{C} = \arg\max_{C} \left[ P(C) \prod_{i=1}^{n} P(x_i \mid C) \right]
+    \end{equation}
+
+    In practice, to avoid numerical underflow, computations are often 
+    performed in the logarithmic domain:
+
+    \begin{equation}
+    \hat{C} = \arg\max_{C} \left[ \log P(C) + \sum_{i=1}^{n} \log P(x_i \mid C) \right]
+    \end{equation}
+
+    Different variants of Naive Bayes exist depending on the nature of the
+    data. Gaussian Naive Bayes assumes that continuous features follow a 
+    normal distribution, while Multinomial and Bernoulli Naive Bayes are
+    commonly used for discrete data such as text classification.
+
+    Naive Bayes is computationally efficient and performs well on 
+    high-dimensional datasets. However, its main limitation lies in 
+    the strong independence assumption, which may reduce its accuracy 
+    when features are highly correlated \cite{ibmnaive}.
+
+    \item \textbf{Artificial Neural Networks (ANN)}
+
+    Artificial Neural Networks (ANNs) are computational models inspired by 
+    the human brain. They consist of layers of interconnected neurons that 
+    transform input data into outputs. Each neuron computes a weighted sum 
+    of its inputs, adds a bias, and applies an activation function:
+
+    \begin{equation}
+    a = \phi\Big(\sum_{i} w_i x_i + b \Big)
+    \end{equation}
+
+    where $x_i$ are the inputs, $w_i$ are weights, $b$ is the bias,
+    and $\phi$ is an activation function such as sigmoid, tanh, or ReLU. 
+
+    ANNs learn by adjusting the weights and biases to minimize a loss 
+    function using optimization techniques like gradient descent. Despite 
+    being simple, ANNs can model nonlinear relationships and serve as the 
+    foundation for deep learning architectures.
 \end{itemize}
 
 % ------------------------------------------------------------
@@ -323,22 +607,42 @@ Despite its promise, deploying ML in healthcare presents several persistent chal
     
     \item \textbf{Privacy and data governance}: Patient data is subject to strict 
     regulatory frameworks (GDPR, HIPAA), severely limiting the ability to centralize 
-    data across institutions for training — a core motivation for federated 
-    learning \cite{miotto2018deep}.
+    data across institutions for training which is a core motivation for federated 
+    learning \cite{EU2016GDPR}\cite{hipaa1996}.
 \end{itemize}
 
 % ============================================================
 \subsection{Deep Learning}
 % ============================================================
 
-\subsubsection{Definition and Principles}
+\subsubsection{Definition}
 
 Deep learning (DL) is a subset of machine learning that uses artificial neural networks 
 with multiple successive layers to automatically learn hierarchical representations 
 from raw data \cite{lecun2015deep}. Rather than relying on manually engineered features, 
 DL models discover task-relevant representations directly from input data, which 
 has proven transformative for unstructured modalities such as images, audio, and 
-biosignals. A single neuron computes:
+biosignals. ANNs, inspired by the functioning of neurons (\textbf{\ref{fig:neuron}}) in the human brain,
+are at the heart of deep learning. Although introduced in the 1940s,
+their development was hindered by the lack of data until the era of big
+data. Today, they play a key role in the advancement of artificial
+intelligence, though they represent just one of many available approaches.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/biological_neuron.jpg}
+        \caption{The biological neuron which inspired ANN \cite{abinaya2025neuron}}
+        \label{fig:neuron}
+\end{figure}
+
+\subsubsection{Artificial Neural Networks (ANNs) and Multilayer Perceptrons}
+
+\paragraph{The perceptron}
+is the simplest type of artificial neural network (\textbf{\ref{fig:perceptron}}).
+It is typically used to produce binary predictions. A perceptron works
+only when the data is linearly separable. The inputs of the neuron are
+the features x, each multiplied by a learnable parameter. A single neuron
+computes:
 
 \[
 y = f\!\left(\sum_{i=1}^{n} w_i x_i + b\right)
@@ -348,58 +652,135 @@ where $w_i$ are learnable weights, $x_i$ are inputs, $b$ is a bias term, and $f$
 is a non-linear activation function (e.g., ReLU, sigmoid, or softmax). Stacking 
 such neurons in layers enables the network to approximate arbitrarily complex functions.
 
-% ------------------------------------------------------------
-\subsubsection{Training Deep Neural Networks}
-% ------------------------------------------------------------
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/perceptron.jpg}
+        \caption{The perceptron \cite{geeks2026perceptron}}
+        \label{fig:perceptron}
+\end{figure}
 
-DL models are trained by minimizing a loss function $\mathcal{L}$ that measures the 
-discrepancy between predictions $\hat{y}$ and ground-truth labels $y$. For 
-multi-class classification, the standard choice is the categorical cross-entropy loss:
+\paragraph{The multilayer perceptron (MLP)}
+is simplest deep learning architecture,it is a fully connected feedforward
+network in which every neuron in one layer is connected to every neuron
+in the next. An MLP with one hidden layer computes:
 
-\[
-\mathcal{L} = -\sum_{i=1}^{N} \sum_{c=1}^{C} y_{i,c} \log(\hat{y}_{i,c})
-\]
-
-where $N$ is the number of samples, $C$ the number of classes, and $\hat{y}_{i,c}$ 
-the predicted probability for class $c$. Weights are updated via backpropagation, 
-which computes gradients of $\mathcal{L}$ with respect to each parameter using the 
-chain rule. Popular optimizers include:
-
-\begin{itemize}
-    \item \textbf{Stochastic Gradient Descent (SGD)}: Updates weights using gradients 
-    computed on mini-batches.
-    \item \textbf{Adam} \cite{kingma2014adam}: Combines adaptive learning rates with 
-    momentum, achieving faster and more stable convergence in most settings.
-    \item \textbf{RMSProp}: Adapts learning rates based on a moving average of recent 
-    gradient magnitudes, particularly suitable for non-stationary settings.
-\end{itemize}
-
-\paragraph{Overfitting and Regularization}
-Overfitting occurs when a model memorizes training data but fails to generalize to 
-unseen samples. Common mitigation strategies include:
-\begin{itemize}
-    \item \textbf{L1/L2 regularization}: Penalizes large weight values.
-    \item \textbf{Dropout}: Randomly deactivates neurons during training, forcing 
-    the network to learn redundant representations.
-    \item \textbf{Batch Normalization}: Normalizes layer activations, stabilizing 
-    and accelerating training.
-    \item \textbf{Early stopping}: Halts training when validation performance 
-    stops improving.
-\end{itemize}
-
-
-\subsubsection{Artificial Neural Networks (ANNs) and Multilayer Perceptrons}
-The simplest deep learning architecture is the \textbf{multilayer perceptron (MLP)}, 
-a fully connected feedforward network in which every neuron in one layer is connected 
-to every neuron in the next. An MLP with one hidden layer computes:
 \[
 \hat{y} = f_2(W_2 \cdot f_1(W_1 \mathbf{x} + b_1) + b_2)
 \]
+
 where $f_1$ and $f_2$ are activation functions and $W_1, W_2$ are weight matrices. 
 Deeper MLPs can approximate arbitrarily complex functions \cite{hornik1989multilayer}. 
 In healthcare, MLPs are commonly applied to structured tabular data such as 
 clinical records and laboratory results, and serve as the backbone for more 
 specialized architectures such as CNNs and RNNs.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/DeepNeuralNetwork.jpg}
+        \caption{Deep neural network example (MLP) \cite{ibmneuralnetwork}}
+        \label{fig:mlp}
+\end{figure}
+
+\paragraph{Activation Functions}
+introduce non-linearity into neural networks, enabling them to model
+complex patterns in data. Common activation functions include:
+
+\subparagraph{Sigmoid}
+Maps input to a value between 0 and 1:
+\begin{equation}
+\sigma(x) = \frac{1}{1 + e^{-x}}
+\end{equation}
+
+\subparagraph{Tanh (Hyperbolic Tangent)}
+Maps input to a value between -1 and 1:
+\begin{equation}
+\tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}
+\end{equation}
+
+\subparagraph{ReLU (Rectified Linear Unit)}
+Outputs zero for negative inputs and the input itself for positive values:
+\begin{equation}
+\text{ReLU}(x) = \max(0, x)
+\end{equation}
+
+\subparagraph{Leaky ReLU}
+A variation of ReLU that allows a small, non-zero gradient for negative inputs:
+\begin{equation}
+\text{Leaky ReLU}(x) = \begin{cases} x & \text{if } x \ge 0 \\ \alpha x & \text{if } x < 0 \end{cases}
+\end{equation}
+
+Activation functions are critical because without them, a neural network
+would behave like a linear model, regardless of its depth.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/activations.png}
+    \caption{Comparison activation functions. Generated using NumPy \cite{numpy} and Matplotlib \cite{matplotlib}.}
+    \label{fig:activation_functions}
+\end{figure}
+
+% ------------------------------------------------------------
+\subsubsection{Training Deep Neural Networks}
+% ------------------------------------------------------------
+
+Deep learning models are trained by minimizing a \textit{loss function} $\mathcal{L}$, which measures the discrepancy between predicted outputs $\hat{y}$ and ground-truth labels $y$. For multi-class classification tasks, the standard choice is the \textbf{categorical cross-entropy loss}:
+
+\[
+\mathcal{L} = -\sum_{i=1}^{N} \sum_{c=1}^{C} y_{i,c} \log(\hat{y}_{i,c})
+\]
+
+where $N$ is the number of training samples, $C$ the number of classes, and $\hat{y}_{i,c}$ the predicted probability for class $c$.
+
+\paragraph{Backpropagation}
+Model parameters are optimized using \textbf{backpropagation}, an algorithm that computes the gradient of the loss function with respect to each network parameter using the chain rule. In essence, backpropagation consists of two main phases:
+\begin{enumerate}
+    \item \textbf{Forward pass:} Input data is passed through the network to compute predictions and the associated loss.
+    \item \textbf{Backward pass:} Gradients of the loss with respect to each weight are calculated and propagated backward through the network.
+\end{enumerate}
+These gradients indicate how each parameter should be adjusted to reduce the loss. 
+
+\paragraph{Optimizers}
+While backpropagation computes gradients, an \textbf{optimizer} determines how to update the weights based on these gradients. Popular optimizers include:
+
+\begin{itemize}
+    \item \textbf{Stochastic Gradient Descent (SGD):} Updates parameters using gradients computed over mini-batches of data. It introduces noise in the updates, which can help escape local minima.
+    \item \textbf{Momentum:} An extension of SGD that accumulates a velocity vector in the direction of past gradients to accelerate convergence, especially in regions with shallow gradients.
+    \item \textbf{RMSProp:} Adjusts the learning rate for each parameter individually based on a moving average of recent gradient magnitudes, stabilizing training in non-stationary settings.
+    \item \textbf{Adam} \cite{kingma2015adam}: Combines the benefits of momentum and RMSProp, using adaptive learning rates and velocity accumulation, often leading to faster and more stable convergence.
+\end{itemize}
+
+\paragraph{Overfitting and Underfitting}
+\textbf{Overfitting} occurs when a model performs well on the \textbf{training} dataset
+but poorly on the \textbf{test} data meaning the model is just memorising the training
+data, resulting in poor generalization to new samples. Conversely,
+\textbf{underfitting} happens when a model is too simple to capture
+underlying patterns, yielding poor performance on both training and
+test data.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/overfitting_underfitting.jpg}
+    \caption{Overfitting and underfitting \cite{geeks2025overfitting}.}
+    \label{fig:overfitting}
+\end{figure}
+
+Strategies to address these issues include:
+
+\begin{itemize}
+    \item \textbf{Regularization:} Techniques like L1 (lasso) and L2 (ridge) add a penalty term to the loss function, discouraging overly large weights and promoting simpler models.
+    \item \textbf{Dropout:} Temporarily deactivates random neurons during training, forcing the network to learn redundant and more robust representations.
+    \begin{figure}[htbp]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/dropout.jpg}
+        \caption{Dropout Regularization \cite{geeks2025dropout}.}
+        \label{fig:dropout}
+    \end{figure}
+    \item \textbf{Batch Normalization:} Normalizes activations at each layer, reducing internal covariate shift and stabilizing learning, which can improve generalization.
+    \item \textbf{Data Augmentation:} Artificially increases the diversity of training data via transformations (e.g., rotations, flips), reducing overfitting by exposing the model to more variations.
+    \item \textbf{Early Stopping:} Monitors validation performance and halts training when improvements plateau or degrade, preventing the network from overfitting the training set.
+    \item \textbf{Hyperparameter Tuning:} Adjusting learning rates, network depth, number of neurons, or batch sizes can help balance underfitting and overfitting.
+\end{itemize}
+
+By carefully combining these methods, a network can achieve both good fit to the training data and strong generalization to unseen samples, which is essential for robust deep learning performance.
 
 % ------------------------------------------------------------
 \subsubsection{Convolutional Neural Networks (CNNs)}
@@ -430,8 +811,15 @@ Architectures such as ResNet, VGG, and EfficientNet, pre-trained on large natura
 image datasets, are routinely fine-tuned on medical imaging tasks through 
 transfer learning.
 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/architecture-cnn-en.jpeg}
+    \caption{CNN architecture \cite{afshinecnn}.}
+    \label{fig:cnn}
+\end{figure}
+
 % ------------------------------------------------------------
-\subsubsection{Recurrent Neural Networks (RNNs) and EEGNet}
+\subsubsection{Recurrent Neural Networks (RNNs)}
 % ------------------------------------------------------------
 
 RNNs are designed for sequential and temporal data, where the current output depends 
@@ -441,82 +829,48 @@ on both the current input and a hidden state encoding prior context:
 h_t = f(W_h h_{t-1} + W_x x_t + b)
 \]
 
-Vanilla RNNs suffer from vanishing gradients over long sequences. Two gated variants 
-address this:
+where $h_t \in \mathbb{R}^d$ is the hidden state at time step $t$, $x_t$ is the 
+current input, $W_h$ and $W_x$ are learnable weight matrices, $b$ is a bias vector, 
+and $f(\cdot)$ is a non-linear activation function such as $\tanh$. The output at 
+each step can be computed as $\hat{y}_t = g(W_o h_t)$, where $g$ is a task-specific 
+output activation.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/architecture-rnn-ltr.png}
+    \caption{RNN architecture \cite{afshinernn}.}
+    \label{fig:rnn}
+\end{figure}
+
+Despite their theoretical expressiveness, vanilla RNNs suffer from the 
+\textbf{vanishing gradient problem} when trained via Backpropagation Through Time 
+(BPTT): gradients diminish exponentially as they are propagated through many time 
+steps, making it difficult for the network to capture long-range temporal 
+dependencies \cite{bengio1994vanishing}. Two gated variants were introduced to 
+overcome this limitation:
 
 \begin{itemize}
-    \item \textbf{Long Short-Term Memory (LSTM)}: Introduces input, forget, and output 
-    gates to selectively retain or discard information over time.
-    \item \textbf{Gated Recurrent Unit (GRU)}: A simplified gated architecture with 
-    fewer parameters, offering comparable performance to LSTM in many settings.
+    \item \textbf{Long Short-Term Memory (LSTM)} \cite{hochreiter1997lstm}: Augments 
+    the recurrent unit with a dedicated \emph{cell state} $c_t$ and three 
+    multiplicative gates (the \emph{input gate} $i_t$, \emph{forget gate} $f_t$, 
+    and \emph{output gate} $o_t$) which regulate how much information is written 
+    to, retained in, or read from the cell state at each step. This gating mechanism 
+    allows LSTMs to selectively preserve relevant information over arbitrarily long 
+    sequences, mitigating the vanishing gradient problem.
+
+    \item \textbf{Gated Recurrent Unit (GRU)} \cite{cho2014gru}: Proposes a 
+    streamlined gating architecture that merges the cell state and hidden state into 
+    a single vector, controlled by two gates, an \emph{update gate} and a 
+    \emph{reset gate}. GRUs have fewer parameters than LSTMs and are computationally 
+    more efficient, while achieving comparable performance across a wide range of 
+    sequential learning tasks.
 \end{itemize}
 
-RNNs and their variants have been applied to EEG signal analysis, ECG arrhythmia 
-detection, and clinical time-series prediction \cite{lipton2015critical}.
-
-For EEG-based classification specifically, \textbf{EEGNet} \cite{lawhern2018eegnet} 
-is a compact CNN architecture purpose-built for brain-computer interface (BCI) 
-tasks. EEGNet uses depthwise and separable convolutions to learn both temporal 
-and spatial EEG filters in a parameter-efficient manner, achieving strong 
-generalization across different BCI paradigms with limited training data — a 
-key advantage given the small dataset sizes typical in clinical EEG studies. 
-Its efficiency makes it particularly well-suited for federated settings where 
-local client datasets may be limited.
-
-% ------------------------------------------------------------
-\subsubsection{Attention Mechanisms and Transformers}
-% ------------------------------------------------------------
-
-Originally introduced for natural language processing, the \textbf{Transformer} 
-architecture \cite{vaswani2017attention} has emerged as a powerful paradigm across 
-modalities. Its core mechanism, \textbf{scaled dot-product self-attention}, allows 
-the model to dynamically weight the relevance of each element in a sequence relative 
-to all others:
-
-\[
-\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V
-\]
-
-where $Q$, $K$, and $V$ are query, key, and value matrices derived from the input, 
-and $d_k$ is the key dimension used for scaling. Multi-head attention runs several 
-such operations in parallel, capturing relationships at different representation 
-subspaces.
-
-In medical imaging, \textbf{Vision Transformers (ViT)} treat image patches as tokens 
-and have shown competitive performance with CNNs on classification tasks. In EEG 
-analysis, transformer-based models capture long-range temporal dependencies across 
-electrode channels, which fixed-kernel CNNs and RNNs may miss. More broadly, 
-transformers underpin recent multimodal fusion architectures that jointly process 
-imaging, text, and tabular clinical data — a capability increasingly explored in 
-federated multimodal healthcare systems.
-
-% ------------------------------------------------------------
-\subsubsection{Deep Learning for Multimodal Medical Data}
-% ------------------------------------------------------------
-
-A key strength of deep learning is its ability to process diverse medical data 
-modalities within unified or jointly trained architectures. The main modality-specific 
-approaches are:
-
-\begin{itemize}
-    \item \textbf{Medical Imaging} (MRI, CT, X-ray, dermoscopy): CNNs and ViTs are 
-    the dominant architectures, with transfer learning from pre-trained models 
-    enabling high performance even on small medical datasets.
-    \item \textbf{Biosignals} (EEG, ECG, EMG): Temporal models (RNNs, LSTMs) and 
-    specialized compact architectures (EEGNet) extract meaningful representations 
-    from multi-channel time series.
-    \item \textbf{Clinical and tabular data}: Gradient boosting methods (XGBoost) 
-    and multilayer perceptrons (MLPs) remain strong performers for structured 
-    patient records.
-    \item \textbf{Multimodal fusion}: Combining imaging, signals, and tabular data 
-    through early, late, or intermediate fusion strategies allows models to 
-    leverage complementary information across modalities, improving diagnostic 
-    accuracy \cite{miotto2018deep}.
-\end{itemize}
-
-This thesis focuses on two of these modalities — EEG signals for epilepsy detection 
-and medical images for cancer sub-type classification — both processed through 
-federated learning pipelines.
+RNNs and their gated variants have been extensively applied to healthcare time-series 
+modeling, including mortality prediction from ICU records \cite{lipton2016rnn}, 
+disease progression modeling, and physiological signal interpretation. However, their 
+inherently sequential computation limits parallelization, a shortcoming that 
+Transformer-based architectures later addressed.
 
 % ============================================================
 \subsection{Model Evaluation}
@@ -534,6 +888,13 @@ classification, it yields four quantities:
     \item \textbf{False Positives (FP)}: Negative cases incorrectly predicted as positive.
     \item \textbf{False Negatives (FN)}: Positive cases incorrectly predicted as negative.
 \end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/Confusion_Matrix.jpg}
+    \caption{Confusion matrix \cite{botconfusion}.}
+    \label{fig:cm}
+\end{figure}
 
 % ------------------------------------------------------------
 \subsubsection{Classification Metrics}
@@ -589,12 +950,11 @@ imbalance, making it a standard evaluation metric in clinical AI research.
 % ------------------------------------------------------------
 
 Beyond standard classification metrics, federated learning introduces additional 
-evaluation dimensions. The \textbf{convergence curve} — tracking global model 
-accuracy or loss as a function of communication rounds — is essential for 
+evaluation dimensions. The \textbf{convergence curve} which tracks global model 
+accuracy or loss as a function of communication rounds is essential for 
 assessing the stability and efficiency of training across distributed clients. 
 Metrics such as \textbf{rounds to convergence} and \textbf{communication cost 
-per round} are used alongside task performance to compare aggregation strategies, 
-as developed in Chapter~\ref{chap:fl}.
+per round} are used alongside task performance to compare aggregation strategies.
 
 \bigskip
 
@@ -602,16 +962,41 @@ While the AI methods described in this section have demonstrated strong performa
 in centralized settings, their deployment across real-world healthcare institutions 
 is fundamentally constrained by data privacy regulations and the practical 
 impossibility of pooling sensitive patient data from multiple sites. These 
-constraints directly motivate the federated learning paradigm, which is introduced 
+constraints directly motivate the \textbf{federated learning} paradigm, which is introduced 
 and analyzed in depth in the following chapter.
 
 
 \section{Conclution}
-TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
-However, traditional AI approaches rely on centralized data collection, which is particularly problematic in healthcare due to privacy, legal, and institutional constraints. This has led to the emergence of new paradigms such as federated learning, which enables collaborative model training without sharing raw data. This paradigm will be explored in detail in Chapter 2.
+This chapter has established the multidisciplinary foundations on which this thesis 
+is built. We began by characterizing the healthcare data landscape, showing that 
+patient data — despite its enormous potential for enabling robust AI-driven 
+diagnostics — is dispersed across institutions in isolated silos, governed by 
+strict legal frameworks such as GDPR and HIPAA, and fundamentally resistant 
+to the centralization that conventional machine learning assumes. This 
+institutional reality is not a peripheral constraint but a defining condition 
+of the problem: any AI system intended for real-world clinical deployment must 
+be designed with data locality and privacy preservation as first-class requirements, 
+not afterthoughts.
 
+We then examined the medical imaging,
+through a modality such as MRI, that encodes high-dimensional 
+spatial structure exploited for cancer sub-type classification.
 
+Finally, we surveyed the AI toolkit available to address these challenges. 
+Classical machine learning algorithms offer interpretability and strong performance 
+on structured clinical data. Deep learning architectures provide 
+the representational power needed for complex medical classification tasks. 
+The evaluation framework presented, spanning standard classification metrics, 
+the ROC-AUC measure, and federated convergence indicators, will serve as the 
+consistent basis for comparing models and strategies throughout this work.
 
+Taken together, the elements introduced in this chapter make the case that 
+effective AI for healthcare requires more than algorithmic sophistication: it 
+requires a system-level approach that reconciles model performance with privacy 
+preservation, data heterogeneity with collaborative learning, and institutional 
+autonomy with the need for generalizable, robust models. It is precisely this 
+reconciliation that federated learning proposes to achieve, and which the 
+following chapter examines in depth.
 
 
 
