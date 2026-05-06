@@ -197,6 +197,20 @@ This limitation is clinically consequential: a deployed model that does
 not generalise across sites introduces systematic diagnostic errors in
 any population it has not seen during training.
 
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.88\linewidth]{figures/centralised_vs_federated.pdf}
+  \caption{Comparison of centralised and federated learning paradigms
+    in a multi-hospital breast MRI scenario. In the centralised setting
+    (\textit{left}), raw patient data must be transferred to a single
+    data centre, raising GDPR and data-sovereignty concerns
+    \cite{gdpr2016regulation,hipaa1996health}. In the federated setting
+    (\textit{right}), only model parameters are exchanged with the
+    coordination server; raw data remain at each institution
+    \cite{mcmahan2017communication}.}
+  \label{fig:centralised-vs-fl}
+\end{figure}
+
 
 % ------------------------------------------------------------
 \subsection{Distributed Learning Paradigms}
@@ -306,6 +320,18 @@ the main FL paradigms.
   \end{tabular}
 \end{table}
 
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figures/fl_taxonomy.pdf}
+  \caption{Taxonomy of federated learning paradigms along two
+    classification axes. The highlighted quadrant (cross-silo,
+    horizontal FL) corresponds to the setting adopted in this thesis:
+    three simulated hospital clients each holding a disjoint cohort
+    of DCE-MRI breast cancer patients
+    \cite{yang2019federated,kairouz2021advances}.}
+  \label{fig:fl-taxonomy}
+\end{figure}
+
 
 % ------------------------------------------------------------
 \subsection{Definition and Origins of Federated Learning}
@@ -406,3 +432,187 @@ spanning radiology, pathology, genomics, and electronic health records
 establishing federated learning as the dominant collaborative learning
 paradigm endorsed by the medical AI research community when privacy
 constraints prohibit raw data sharing.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{figures/fl_round.pdf}
+  \caption{The four phases of one federated learning communication
+    round (equation~\eqref{eq:fedavg-aggregation}). At each round $t$
+    the server broadcasts the current global parameters $\mathbf{w}^{(t)}$
+    to all selected clients, each client performs $E$ local SGD steps
+    on its private dataset $\mathcal{D}_k$, the resulting local
+    parameters $\mathbf{w}_k^{(t+1)}$ are uploaded to the server,
+    and the server computes the weighted aggregate
+    $\mathbf{w}^{(t+1)}$ ready for the next round
+    \cite{mcmahan2017communication,kairouz2021advances}.}
+  \label{fig:fl-round}
+\end{figure}
+
+
+% ============================================================
+\section{Federated Learning Architecture}
+\label{sec:fl-architecture}
+% ============================================================
+
+The practical realisation of the federated optimisation objective defined in
+Section~\ref{sec:fl-definition} requires a concrete system architecture that
+coordinates communication between geographically distributed participants,
+manages model state across training rounds, and enforces the data-locality
+constraint that distinguishes federated from centralised learning.
+This section describes the canonical two-tier client--server architecture that
+underlies most deployed and experimental FL systems, including the
+Flower-based setup employed in this thesis.
+
+
+% ------------------------------------------------------------
+\subsection{Client-Server Paradigm}
+\label{sec:client-server}
+% ------------------------------------------------------------
+
+The canonical FL architecture is organised as a two-tier hierarchy consisting
+of a central coordination server and a set of $K$ clients, each in possession
+of a private local dataset $\mathcal{D}_k$ that remains on-site throughout the
+entire training process \cite{mcmahan2017communication}.
+The server is the orchestrating entity: it maintains the authoritative copy of
+the global model, schedules training rounds, selects participating clients,
+aggregates locally computed updates, and broadcasts the updated global model.
+Clients are the computational entities: each executes local optimisation on its
+own data and returns parameter updates to the server without exposing raw
+records.
+
+This division of responsibility reflects both the privacy requirement and the
+typical infrastructure of cross-silo healthcare deployments.
+The server may be hosted by a neutral third party---a research consortium, a
+cloud provider operating under a data-processing agreement, or one of the
+participating hospitals designated as coordinator---provided that the server
+never receives raw patient data.
+Clients in a cross-silo setting are typically individual hospital sites or
+research centres, each equipped with sufficient GPU compute to execute local
+training on their imaging datasets \cite{rieke2020future,kairouz2021advances}.
+
+An important architectural distinction concerns the degree of client selection
+per round.
+In large-scale cross-device FL, only a small fraction of available clients
+participate in each round due to device availability and bandwidth constraints.
+In cross-silo deployments of the kind considered in this thesis, where the
+total number of clients is small (three simulated hospital nodes), all clients
+participate in every round, simplifying convergence analysis and eliminating
+the client-dropout variability that complicates cross-device FL
+\cite{kairouz2021advances}.
+
+
+% ------------------------------------------------------------
+\subsection{Local Training at Client Institutions}
+\label{sec:local-training}
+% ------------------------------------------------------------
+
+At the commencement of each communication round $t$, every selected client
+$k \in \mathcal{S}^{(t)}$ receives the current global parameter vector
+$\mathbf{w}^{(t)}$ from the server and initialises its local model with this
+shared starting point.
+The client then performs a fixed number $E$ of local optimisation steps using
+mini-batch stochastic gradient descent (SGD) over its private dataset
+$\mathcal{D}_k$, minimising the local empirical risk $F_k(\mathbf{w})$ defined
+in equation~\eqref{eq:local-risk}.
+
+The choice of $E$ governs the trade-off between communication efficiency and
+optimisation quality.
+A single local step ($E = 1$) reduces to synchronous distributed SGD and
+requires a communication round after every gradient computation, incurring high
+bandwidth costs.
+Multiple local steps ($E > 1$) amortise the communication overhead across more
+computation but introduce \emph{client drift}: because each client optimises
+its local objective rather than the global one, the local model moves away from
+the global optimum at a rate that depends on the statistical heterogeneity of
+the local data distribution \cite{kairouz2021advances}.
+In the non-IID setting characteristic of multi-hospital deployments---where
+patient demographics, scanner protocols, and subtype prevalence differ across
+sites---client drift is a primary source of convergence degradation and
+motivates the regularisation techniques discussed in
+Section~\ref{sec:aggregation}.
+
+In the breast MRI molecular subtype classification scenario of this thesis,
+each client applies the same ResNet-based backbone architecture initialised
+from the global weights, performing local updates using a cosine learning rate
+schedule with MixUp augmentation to mitigate the class imbalance arising from
+the non-IID partition of the 737-patient dataset across three hospital nodes.
+Progressive unfreezing of backbone layers during local training is employed to
+preserve low-level feature representations learned from the global model while
+adapting higher-level features to site-specific data characteristics.
+
+
+% ------------------------------------------------------------
+\subsection{Global Model Aggregation on the Server}
+\label{sec:global-aggregation}
+% ------------------------------------------------------------
+
+Upon completion of local training, each participating client $k$ transmits its
+updated local parameter vector $\mathbf{w}_k^{(t+1)}$ to the central server.
+The server's aggregation function combines these client updates into a new
+global model that, under the weighted averaging scheme of FedAvg, corresponds
+to the sample-size-weighted mean of local parameters as given in
+equation~\eqref{eq:fedavg-aggregation}.
+The resulting global model $\mathbf{w}^{(t+1)}$ integrates knowledge from all
+participating clients without requiring any client to share its underlying
+data.
+
+The correctness of weighted averaging as an aggregation operator rests on the
+assumption that local models are trained from the same initialisation and that
+the global objective is the weighted sum of local objectives with weights
+proportional to dataset size \cite{mcmahan2017communication}.
+Under these conditions, averaging in parameter space approximates a single
+gradient step on the global objective.
+When the assumption of identical data distributions across clients is
+violated---the non-IID case---this approximation degrades, and the aggregated
+model may converge to a point that is suboptimal for all clients
+simultaneously.
+Alternative aggregation strategies that address this degradation are surveyed
+in Section~\ref{sec:aggregation}.
+
+A practical consideration in cross-silo medical imaging deployments is the
+size of the parameter vectors being transmitted.
+A ResNet-50 backbone comprises approximately 25 million floating-point
+parameters; transmitting full parameter vectors from three hospital clients per
+round is feasible within the bandwidth constraints of institutional networks,
+in contrast to the gradient-compression requirements of cross-device
+deployments involving thousands of participants
+\cite{kairouz2021advances,rieke2020future}.
+
+
+% ------------------------------------------------------------
+\subsection{Communication Rounds and Convergence}
+\label{sec:comm-rounds}
+% ------------------------------------------------------------
+
+Training in federated learning is structured as a sequence of discrete
+communication rounds rather than the continuous gradient flow of centralised
+training.
+Each round consists of four steps: the server broadcasts the current global
+model to selected clients; clients perform local optimisation; clients transmit
+updated parameters to the server; and the server aggregates the updates and
+prepares the next global model.
+This round structure introduces a fundamental coupling between the number of
+communication rounds $T$, the number of local steps $E$ per round, and the
+total computational budget available to each client.
+
+Convergence analysis for FedAvg under non-IID data distributions demonstrates
+that the algorithm converges at a rate that degrades as the degree of data
+heterogeneity---measured by the gradient divergence
+$\|\nabla F_k(\mathbf{w}) - \nabla F(\mathbf{w})\|$ across clients---increases
+\cite{kairouz2021advances}.
+Intuitively, when local data distributions differ substantially, local gradient
+directions point towards different local optima, and their average after
+multiple local steps is a poor approximation to the global gradient.
+The practical consequence is that non-IID FL systems may require significantly
+more communication rounds to achieve a given target accuracy than an equivalent
+centralised system trained on the pooled dataset.
+
+In healthcare FL deployments, the number of communication rounds is also
+constrained by institutional factors beyond pure optimisation considerations:
+each round involves synchronisation across hospital sites that may operate on
+different schedules, under different computational loads, and subject to
+network availability constraints that do not arise in a single data centre.
+For the three-hospital simulation in this thesis, all clients are available
+synchronously, so round scheduling reduces to a hyperparameter choice; the
+interaction between round count, local epochs, and convergence on the non-IID
+breast MRI partition is reported in Chapter~3.
