@@ -1,69 +1,57 @@
-\chapter{Chapter 3 -- Proposed Architecture and Methodology}
+% ============================================================
+% CHAPTER 3 STRUCTURE — Proposed Architecture and Methodology
+% All sections to be written — content pending
+% ============================================================
+\chapter{Proposed Architecture and Methodology}
+\label{chap:methodology}
 
-\section{Introduction}
+\section{Introduction}\label{sec:ch3-intro}
+% TODO
 
-\section{Overall System Architecture}
+\section{Overall System Architecture}\label{sec:system-arch}
+\subsection{General Design of the Federated System}\label{sec:fed-design}
+\subsection{Federation Topology: Clients, Server, Simulation}\label{sec:fed-topology}
+% TODO
 
-\subsection{General Design of the Federated System}
-\subsection{Federation Topology (Number of Clients, Server Role)}
-\subsection{Multi-Modality Integration Strategy}
+\section{Dataset Description}\label{sec:dataset}
+\subsection{Breast DCE-MRI Dataset}\label{sec:dataset-description}
+\subsection{Class Distribution and Imbalance Analysis}\label{sec:class-imbalance}
+\subsection{Non-IID Data Partitioning Across Simulated Hospitals}\label{sec:noniid-partition}
+% TODO
 
-\section{Case Study 1 — EEG Signals for Epilepsy Detection}
+\section{Image Preprocessing Pipeline}\label{sec:preprocessing}
+\subsection{Volume Loading and Normalisation}\label{sec:volume-loading}
+\subsection{Spatial Resampling and Cropping}\label{sec:resampling}
+\subsection{Data Augmentation Strategy}\label{sec:augmentation}
+% TODO
 
-\subsection{Dataset Description and Sources}
-\subsection{EEG Signal Preprocessing}
+\section{Local Model Architecture}\label{sec:model-arch}
+\subsection{R3D-18 Backbone and Grayscale Adaptation}\label{sec:r3d18}
+\subsection{Classifier Head Design}\label{sec:classifier-head}
+\subsection{Progressive Unfreezing Strategy}\label{sec:unfreezing}
+% TODO
 
-\subsubsection{Filtering and Artifact Removal}
-\subsubsection{Segmentation and Epoching}
+\section{Proposed Aggregation Optimisations}\label{sec:agg-optimisations}
+\subsection{Baseline: FedAvg}\label{sec:ch3-fedavg}
+\subsection{FedProx with Proximal Regularisation}\label{sec:ch3-fedprox}
+\subsection{Class Imbalance Handling in the Federated Setting}\label{sec:ch3-imbalance}
+% TODO
 
+\section{Communication Configuration}\label{sec:comm-config}
+\subsection{Round Schedule and Local Epoch Budget}\label{sec:round-schedule}
+\subsection{Bandwidth-Efficient Update Transmission}\label{sec:bandwidth}
+% TODO
 
-\subsection{Feature Extraction}
+\section{Privacy Preservation Mechanisms}\label{sec:ch3-privacy}
+\subsection{Differential Privacy Configuration}\label{sec:ch3-dp}
+\subsection{Secure Aggregation Protocol}\label{sec:ch3-secagg}
+% TODO
 
-\subsubsection{Time-Domain Features}
-\subsubsection{Frequency-Domain Features}
+\section{Evaluation Protocol}\label{sec:eval-protocol}
+\subsection{Federated versus Centralised Baseline}\label{sec:fed-vs-central}
+\subsection{Performance Metrics}\label{sec:metrics}
+\subsection{Convergence Monitoring}\label{sec:conv-monitoring}
+% TODO
 
-
-\subsection{Local Model Architecture for EEG Classification}
-
-\section{Case Study 2 — Medical Imaging for Cancer Sub-Type Classification}
-
-\subsection{Dataset Description and Sources}
-\subsection{Image Preprocessing}
-
-\subsubsection{Normalization and Resizing}
-\subsubsection{Data Augmentation}
-
-
-\subsection{Local Model Architecture for Image Classification}
-
-\subsubsection{CNN-Based Architecture}
-\subsubsection{Transfer Learning Strategy}
-
-
-
-\section{Proposed Aggregation Strategy Optimizations}
-
-\subsection{Baseline: FedAvg}
-\subsection{Proposed Variants and Modifications}
-\subsection{Adaptive Weighting of Client Contributions}
-\subsection{Handling Non-IID Data Across Institutions}
-
-\section{Proposed Communication Scheme Optimizations}
-
-\subsection{Gradient Compression Strategy}
-\subsection{Communication Round Scheduling}
-\subsection{Bandwidth-Efficient Update Transmission}
-
-\section{Privacy Preservation Mechanisms}
-
-\subsection{Applied Differential Privacy Configuration}
-\subsection{Secure Aggregation Protocol}
-
-\section{Evaluation Protocol}
-
-\subsection{Federated vs. Centralized Baseline Comparison}
-\subsection{Cross-Validation Strategy}
-\subsection{Performance Metrics per Task}
-\subsection{Convergence Monitoring Metrics}
-\section{Conclusion}
-
+\section{Conclusion}\label{sec:ch3-conclusion}
+% TODO
