@@ -1,0 +1,477 @@
+{
+  "nodes": [
+    {
+      "id": "g0",
+      "type": "group",
+      "label": "FL Algorithms & Privacy",
+      "x": 0,
+      "y": 0,
+      "width": 660,
+      "height": 420,
+      "color": "1"
+    },
+    {
+      "id": "n_readme_communicationoptimization",
+      "type": "file",
+      "file": "graphify/obsidian/Communication Optimization.md",
+      "x": 20,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_differentialprivacy",
+      "type": "file",
+      "file": "graphify/obsidian/Differential Privacy.md",
+      "x": 220,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_fedavg",
+      "type": "file",
+      "file": "graphify/obsidian/FedAvg.md",
+      "x": 420,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_fednova",
+      "type": "file",
+      "file": "graphify/obsidian/FedNova.md",
+      "x": 20,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_fedprox",
+      "type": "file",
+      "file": "graphify/obsidian/FedProx.md",
+      "x": 220,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_federatedlearning",
+      "type": "file",
+      "file": "graphify/obsidian/Federated Learning.md",
+      "x": 420,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_privacypreservingmachinelearning",
+      "type": "file",
+      "file": "graphify/obsidian/Privacy-Preserving Machine Learning.md",
+      "x": 20,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_scaffold",
+      "type": "file",
+      "file": "graphify/obsidian/SCAFFOLD.md",
+      "x": 220,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_secureaggregation",
+      "type": "file",
+      "file": "graphify/obsidian/Secure Aggregation.md",
+      "x": 420,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g1",
+      "type": "group",
+      "label": "Healthcare Applications & Neural Architectures",
+      "x": 740,
+      "y": 0,
+      "width": 660,
+      "height": 420,
+      "color": "2"
+    },
+    {
+      "id": "n_readme_cnn",
+      "type": "file",
+      "file": "graphify/obsidian/CNN.md",
+      "x": 760,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_cancersubtypeclassification",
+      "type": "file",
+      "file": "graphify/obsidian/Cancer Sub-type Classification.md",
+      "x": 960,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_eegsignals",
+      "type": "file",
+      "file": "graphify/obsidian/EEG Signals.md",
+      "x": 1160,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_eegnet",
+      "type": "file",
+      "file": "graphify/obsidian/EEGNet.md",
+      "x": 760,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_epilepsydetection",
+      "type": "file",
+      "file": "graphify/obsidian/Epilepsy Detection.md",
+      "x": 960,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_figures_masters",
+      "type": "file",
+      "file": "graphify/obsidian/Master's Thesis Document.md",
+      "x": 1160,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_medicalimaging",
+      "type": "file",
+      "file": "graphify/obsidian/Medical Imaging.md",
+      "x": 760,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_optimizingfederatedlearning",
+      "type": "file",
+      "file": "graphify/obsidian/Optimizing Federated Learning for Healthcare Applications.md",
+      "x": 960,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_figures_usthb",
+      "type": "file",
+      "file": "graphify/obsidian/USTHB University Logo and Thesis Title.md",
+      "x": 1160,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g2",
+      "type": "group",
+      "label": "Data Heterogeneity & Convergence",
+      "x": 1480,
+      "y": 0,
+      "width": 600,
+      "height": 400,
+      "color": "3"
+    },
+    {
+      "id": "n_readme_convergencestability",
+      "type": "file",
+      "file": "graphify/obsidian/Convergence Stability.md",
+      "x": 1500,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_non-iiddat",
+      "type": "file",
+      "file": "graphify/obsidian/Non-IID Data.md",
+      "x": 1700,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g3",
+      "type": "group",
+      "label": "FL Frameworks",
+      "x": 0,
+      "y": 500,
+      "width": 600,
+      "height": 400,
+      "color": "4"
+    },
+    {
+      "id": "n_readme_fedml",
+      "type": "file",
+      "file": "graphify/obsidian/FedML.md",
+      "x": 20,
+      "y": 580,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_flowerflwr",
+      "type": "file",
+      "file": "graphify/obsidian/Flower (Flwr).md",
+      "x": 220,
+      "y": 580,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g4",
+      "type": "group",
+      "label": "RNN Models",
+      "x": 740,
+      "y": 500,
+      "width": 600,
+      "height": 400,
+      "color": "5"
+    },
+    {
+      "id": "n_readme_rnn",
+      "type": "file",
+      "file": "graphify/obsidian/RNN.md",
+      "x": 760,
+      "y": 580,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g5",
+      "type": "group",
+      "label": "Transformers",
+      "x": 1480,
+      "y": 500,
+      "width": 600,
+      "height": 400,
+      "color": "6"
+    },
+    {
+      "id": "n_readme_transformers",
+      "type": "file",
+      "file": "graphify/obsidian/Transformers.md",
+      "x": 1500,
+      "y": 580,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g6",
+      "type": "group",
+      "label": "Substra Framework",
+      "x": 0,
+      "y": 980,
+      "width": 600,
+      "height": 400,
+      "color": "1"
+    },
+    {
+      "id": "n_readme_substra",
+      "type": "file",
+      "file": "graphify/obsidian/Substra.md",
+      "x": 20,
+      "y": 1060,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g7",
+      "type": "group",
+      "label": "PySyft Framework",
+      "x": 740,
+      "y": 980,
+      "width": 600,
+      "height": 400,
+      "color": "2"
+    },
+    {
+      "id": "n_readme_pysyft",
+      "type": "file",
+      "file": "graphify/obsidian/PySyft.md",
+      "x": 760,
+      "y": 1060,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g8",
+      "type": "group",
+      "label": "USTHB Institution",
+      "x": 1480,
+      "y": 980,
+      "width": 600,
+      "height": 400,
+      "color": "3"
+    },
+    {
+      "id": "n_figures_ustbh",
+      "type": "file",
+      "file": "graphify/obsidian/Universit\u00c3\u00a9 des Sciences et de la Technologie Houari Boumediene.md",
+      "x": 1500,
+      "y": 1060,
+      "width": 180,
+      "height": 60
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_readme_optimizingfederatedlearning_readme_federatedlearning",
+      "fromNode": "n_readme_optimizingfederatedlearning",
+      "toNode": "n_readme_federatedlearning",
+      "label": "has_topic [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_optimizingfederatedlearning_readme_eegsignals",
+      "fromNode": "n_readme_optimizingfederatedlearning",
+      "toNode": "n_readme_eegsignals",
+      "label": "has_topic [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_optimizingfederatedlearning_readme_medicalimaging",
+      "fromNode": "n_readme_optimizingfederatedlearning",
+      "toNode": "n_readme_medicalimaging",
+      "label": "has_topic [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_optimizingfederatedlearning_figures_usthb",
+      "fromNode": "n_readme_optimizingfederatedlearning",
+      "toNode": "n_figures_usthb",
+      "label": "produced_by_institution [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_federatedlearning_readme_fedavg",
+      "fromNode": "n_readme_federatedlearning",
+      "toNode": "n_readme_fedavg",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_federatedlearning_readme_fedprox",
+      "fromNode": "n_readme_federatedlearning",
+      "toNode": "n_readme_fedprox",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_federatedlearning_readme_fednova",
+      "fromNode": "n_readme_federatedlearning",
+      "toNode": "n_readme_fednova",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_federatedlearning_readme_scaffold",
+      "fromNode": "n_readme_federatedlearning",
+      "toNode": "n_readme_scaffold",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_federatedlearning_readme_communicationoptimization",
+      "fromNode": "n_readme_federatedlearning",
+      "toNode": "n_readme_communicationoptimization",
+      "label": "conceptually_related_to [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_federatedlearning_readme_differentialprivacy",
+      "fromNode": "n_readme_federatedlearning",
+      "toNode": "n_readme_differentialprivacy",
+      "label": "conceptually_related_to [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_federatedlearning_readme_secureaggregation",
+      "fromNode": "n_readme_federatedlearning",
+      "toNode": "n_readme_secureaggregation",
+      "label": "conceptually_related_to [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_federatedlearning_readme_privacypreservingmachinelearning",
+      "fromNode": "n_readme_federatedlearning",
+      "toNode": "n_readme_privacypreservingmachinelearning",
+      "label": "is_a [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_eegsignals_readme_epilepsydetection",
+      "fromNode": "n_readme_eegsignals",
+      "toNode": "n_readme_epilepsydetection",
+      "label": "used_for [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_eegsignals_readme_eegnet",
+      "fromNode": "n_readme_eegsignals",
+      "toNode": "n_readme_eegnet",
+      "label": "uses_architecture [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_medicalimaging_readme_cancersubtypeclassification",
+      "fromNode": "n_readme_medicalimaging",
+      "toNode": "n_readme_cancersubtypeclassification",
+      "label": "used_for [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_medicalimaging_readme_cnn",
+      "fromNode": "n_readme_medicalimaging",
+      "toNode": "n_readme_cnn",
+      "label": "uses_architecture [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_fedavg_readme_fedprox",
+      "fromNode": "n_readme_fedavg",
+      "toNode": "n_readme_fedprox",
+      "label": "semantically_similar_to [INFERRED]"
+    },
+    {
+      "id": "e_readme_fednova_readme_scaffold",
+      "fromNode": "n_readme_fednova",
+      "toNode": "n_readme_scaffold",
+      "label": "semantically_similar_to [INFERRED]"
+    },
+    {
+      "id": "e_readme_differentialprivacy_readme_secureaggregation",
+      "fromNode": "n_readme_differentialprivacy",
+      "toNode": "n_readme_secureaggregation",
+      "label": "semantically_similar_to [INFERRED]"
+    },
+    {
+      "id": "e_readme_eegnet_readme_cnn",
+      "fromNode": "n_readme_eegnet",
+      "toNode": "n_readme_cnn",
+      "label": "semantically_similar_to [INFERRED]"
+    },
+    {
+      "id": "e_readme_non-iiddat_readme_convergencestability",
+      "fromNode": "n_readme_non-iiddat",
+      "toNode": "n_readme_convergencestability",
+      "label": "conceptually_related_to [EXTRACTED]"
+    },
+    {
+      "id": "e_readme_flowerflwr_readme_fedml",
+      "fromNode": "n_readme_flowerflwr",
+      "toNode": "n_readme_fedml",
+      "label": "semantically_similar_to [INFERRED]"
+    },
+    {
+      "id": "e_figures_usthb_figures_masters",
+      "fromNode": "n_figures_usthb",
+      "toNode": "n_figures_masters",
+      "label": "contains [EXTRACTED]"
+    }
+  ]
+}
