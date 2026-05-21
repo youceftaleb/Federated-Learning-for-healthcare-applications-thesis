@@ -1,2 +1,104 @@
 \chapter*{General Introduction}
 \addcontentsline{toc}{chapter}{General Introduction}
+
+% ============================================================
+% PROBLEMATIQUE — General Introduction
+% ============================================================
+\section*{Research Problem and Questions}
+
+The convergence of three concurrent realities motivates
+the research conducted in this thesis.
+First, breast cancer molecular subtype classification from
+DCE-MRI is a clinically consequential task: the subtype
+determines whether a patient receives endocrine therapy,
+cytotoxic chemotherapy, or targeted anti-HER2 treatment,
+and early, accurate classification directly influences
+survival outcomes.
+Second, the datasets required to train reliable deep
+learning classifiers for this task are distributed across
+hospital institutions that cannot legally or ethically
+pool their patient imaging data, owing to the regulatory
+frameworks established by the GDPR and HIPAA.
+Third, the dataset available at any single institution is
+severely class-imbalanced, with the rarest subtype
+representing fewer than 7\% of cases, placing a hard
+ceiling on what any single-site model can achieve.
+
+Federated learning offers a principled resolution to the
+first two realities by enabling multi-institutional model
+training without raw data exchange.
+However, the third reality introduces a challenge that
+federated learning alone does not resolve: when data are
+both scarce and unevenly distributed across institutions,
+the standard Federated Averaging algorithm converges
+toward a globally biased model that performs well on
+majority classes and poorly on the clinical minorities
+that are most diagnostically challenging.
+The central research problem of this thesis is therefore:
+
+\begin{center}
+\textit{How can federated learning be configured and
+optimised to classify breast MRI molecular subtypes
+accurately across privacy-preserving hospital silos,
+given severe class imbalance and non-identically
+distributed data?}
+\end{center}
+
+This problem is decomposed into three specific research
+questions that structure the experimental evaluation:
+
+\begin{enumerate}
+
+  \item What classification performance ceiling does a
+  centralised deep learning system achieve on breast MRI
+  molecular subtype prediction under severe class
+  imbalance, and how does a clinically motivated binary
+  reformulation address the fundamental data scarcity
+  constraint imposed by rare subtypes?
+
+  \item How much classification performance is lost when
+  training is distributed across three simulated hospital
+  clients with non-IID data partitioning under the FedAvg
+  aggregation strategy, and what is the nature of the
+  privacy--performance trade-off in this setting?
+
+  \item Can SCAFFOLD's control-variate correction
+  mechanism reduce the convergence gap caused by
+  statistical heterogeneity in a three-hospital federated
+  breast MRI setting, and to what extent does
+  convergence-aware aggregation recover the performance
+  lost to client drift?
+
+\end{enumerate}
+
+\section*{Contributions}
+
+This thesis makes the following original contributions
+to the federated medical imaging literature.
+
+\begin{itemize}
+
+  \item A complete three-stage training pipeline combining
+  ConvNeXt-Nano with Gated Attention Multiple Instance
+  Learning, Label-Distribution-Aware Margin loss, Adaptive
+  Sharpness-Aware Minimization, Stochastic Weight
+  Averaging, and Classifier Retraining, designed
+  specifically for severely imbalanced breast DCE-MRI
+  classification on a single consumer-grade GPU.
+
+  \item A systematic empirical comparison of FedAvg and
+  SCAFFOLD aggregation strategies under three degrees of
+  non-IID data heterogeneity across simulated hospital
+  clients, using a clinically motivated binary
+  reformulation of the molecular subtype task.
+
+  \item A proof-of-concept radiomic feature fusion
+  experiment combining 256-dimensional deep MIL embeddings
+  with 59 hand-crafted PyRadiomics features, demonstrating
+  the complementary information available from explicit
+  texture descriptors on whole-breast DCE-MRI volumes
+  without tumour segmentation masks.
+
+\end{itemize}
+
+% ============================================================

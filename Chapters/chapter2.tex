@@ -7,8 +7,8 @@
 % ============================================================
 
 Modern healthcare generates massive quantities of sensitive clinical
-data - radiological images, genomic profiles, electronic health records,
-and physiological time series distributed across hospitals, research
+data -- radiological images, genomic profiles, electronic health records,
+and physiological time series -- distributed across hospitals, research
 centres, and diagnostic laboratories that are separated by
 institutional, legal, and geographical boundaries.
 Chapter~1 established that these institutions operate as data silos:
@@ -302,7 +302,7 @@ the main FL paradigms.
     \centering
     \includegraphics[width=0.8\textwidth]{figures/fig2_2_fl_taxonomy.jpg}
     \caption{Taxonomy of federated learning paradigms. The highlighted
-      quadrant cross-silo, horizontal FL corresponds to the
+      quadrant -- cross-silo, horizontal FL -- corresponds to the
       setting adopted in this thesis \cite{yang2019federated,kairouz2021advances}.}
     \label{fig:fl-taxonomy}
 \end{figure}
@@ -543,7 +543,7 @@ local objectives with weights proportional to dataset size
 Under these conditions, averaging in parameter space approximates a
 single gradient step on the global objective.
 When the assumption of identical data distributions across clients is
-violated the non-IID case this approximation degrades, and the
+violated -- the non-IID case -- this approximation degrades, and the
 aggregated model may converge to a point that is suboptimal for all
 clients simultaneously.
 Alternative aggregation strategies that address this degradation are
@@ -1932,10 +1932,18 @@ this thesis.
 The Flower framework has been identified as the implementation
 platform, and related work has positioned the present
 contribution within the federated medical imaging literature.
+Among the aggregation strategies surveyed,
+SCAFFOLD \cite{karimireddy2020scaffold} is selected as
+the optimisation variant for the federated experiment on
+the grounds that its control-variate correction mechanism
+directly targets the client drift caused by the non-IID
+three-hospital data partition, which is the primary
+convergence challenge identified in
+Section~\ref{sec:convergence}.
 
 Chapter~3 translates the conceptual and algorithmic framework
 developed here into a concrete experimental design: the
 breast MRI dataset is described, the non-IID partitioning
-strategy is defined, the ResNet classification model is
-specified, and the full federated training pipeline is
-detailed.
+strategy is defined, the ConvNeXt-Nano backbone with Gated
+Attention Multiple Instance Learning head is specified,
+and the full federated training pipeline is detailed.
