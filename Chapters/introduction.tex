@@ -101,4 +101,36 @@ to the federated medical imaging literature.
 
 \end{itemize}
 
+The experimental validation is conducted on breast
+Dynamic Contrast-Enhanced MRI (DCE-MRI) molecular
+subtype classification, a domain selected deliberately
+on four grounds.
+First, breast DCE-MRI is among the most legally and
+ethically sensitive medical imaging modalities:
+volumetric MRI studies contain biometric and genetic
+implications that make cross-institutional sharing
+particularly constrained under both international and
+Algerian data protection law.
+Second, the publicly available Duke Hospital dataset
+\cite{saha2018,alves2023breastmri} presents a class
+imbalance ratio of 10.4:1, making it one of the most
+challenging multi-class imbalance benchmarks in medical
+imaging FL research and a rigorous test for the
+proposed optimisation techniques.
+Third, the molecular subtype label has direct,
+high-stakes treatment consequences: the binary
+Luminal versus Non-Luminal decision governs whether
+a patient receives endocrine therapy or cytotoxic
+chemotherapy, making classification errors clinically
+costly in a federated deployment context.
+Fourth, it is the only large-scale publicly available
+breast DCE-MRI collection with molecular subtype
+labels, ensuring that results are reproducible and
+comparable.
+The optimisation contributions of this thesis,
+including the three-stage imbalance-aware training
+pipeline and the SCAFFOLD aggregation strategy, are
+general and transferable to other healthcare FL
+scenarios beyond breast MRI.
+
 % ============================================================

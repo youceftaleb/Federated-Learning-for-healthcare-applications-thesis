@@ -33,7 +33,7 @@ Healthcare data is one of the most valuable and sensitive types of information i
 
 \subsection{Healthcare Institutions and Data Silos}
 
-Healthcare institutions differ in scale, specialization, and technological infrastructure. Large hospitals often rely on Electronic Health Records (EHRs), which store structured data such as laboratory results and prescriptions, as well as unstructured data such as clinical notes and medical reports \cite{jensen2012mining}. In contrast, specialized centers may generate high-dimensional data such as medical imaging or physiological signals like electroencephalography (EEG).
+Healthcare institutions differ in scale, specialization, and technological infrastructure. Large hospitals often rely on Electronic Health Records (EHRs), which store structured data such as laboratory results and prescriptions, as well as unstructured data such as clinical notes and medical reports \cite{jensen2012mining}. In contrast, specialised centres rely primarily on high-dimensional imaging data, such as volumetric MRI sequences and physiological signals including electroencephalography (EEG) recordings.
 
 This heterogeneity contributes to the emergence of \textit{data silos}, which refer to isolated repositories of data that are not easily accessible or shareable across systems or institutions. Data silos arise due to differences in database formats, lack of interoperability standards, and institutional policies restricting data access. As a result, the potential of large-scale data analysis and machine learning is significantly limited, since robust models require diverse and representative datasets \cite{Peeyush2025healthcare}.
 
@@ -50,6 +50,7 @@ Third, \textbf{privacy and security concerns} are critical. Healthcare data cont
 The sharing and processing of healthcare data are governed by strict legal and ethical regulations. In the European context, the \textit{General Data Protection Regulation (GDPR)} establishes comprehensive rules for the protection of personal data. It requires explicit patient consent, enforces data minimization principles, and mandates anonymization or pseudonymization when data is used for research purposes \cite{EU2016GDPR}.
 
 Similarly, in the United States, the \textit{Health Insurance Portability and Accountability Act (HIPAA)} defines standards for safeguarding medical information. HIPAA regulates how healthcare providers and organizations store, access, and transmit patient data, and it imposes strict penalties in case of data breaches \cite{hipaa1996}.
+In Algeria, the same obligations apply under Law~18-07, which governs any processing of health data by Algerian institutions regardless of whether the data are transferred abroad.
 
 These regulations highlight the importance of developing methods that enable data utilization while preserving patient privacy.
 
@@ -103,24 +104,35 @@ From a machine learning perspective, combining multimodal data can improve model
 \section{Artificial Intelligence in Healthcare}
 % ============================================================
 
-\textbf{Artificial intelligence (AI)} refers to the branch of computer science that aims to develop 
-systems capable of performing tasks that typically require human intelligence, such as 
-reasoning, perception, and decision-making \cite{russell2016artificial}.
+\textbf{Artificial intelligence (AI)} denotes the branch of computer science dedicated to
+designing computational systems capable of performing tasks that ordinarily require
+human cognitive faculties, including logical reasoning, perceptual interpretation,
+natural language understanding, and autonomous decision-making under uncertainty
+\cite{russell2016artificial}.
 
-\textbf{Machine learning (ML)} is a subfield of AI which aims to create systems
-that learns from data. ML algorithms are trained to find relationships
-and patterns in data. They use historical data as input to make predictions,
-classify information, group data into clusters, reduce dimensionality,
-and even help generate new content.
+\textbf{Machine learning (ML)} is a subfield of AI in which algorithms acquire
+predictive or descriptive capability directly from empirical data, without being
+programmed with explicit task-specific rules.
+A learning system estimates a parameterised model by minimising a loss function
+over a labelled or unlabelled training corpus, thereby inducing a mapping from
+inputs to outputs that is expected to generalise to previously unseen observations;
+depending on the nature of the supervision signal, ML methods are broadly
+categorised as supervised, unsupervised, semi-supervised, or reinforcement learning.
 
-\textbf{Deep learning (DL)} is an advanced
-branch of ML that uses artificial neural networks designed to function
-like the human brain, in order to model and understand complex data.
+\textbf{Deep learning (DL)} is an advanced branch of ML that employs hierarchical
+neural network architectures composed of many successive non-linear transformation
+layers to learn distributed representations from raw data at progressively
+increasing levels of abstraction.
+By composing simple parametric functions across many layers, deep models discover
+task-relevant features automatically from unprocessed inputs without relying on
+hand-engineered feature extractors, a property that has proven transformative for
+high-dimensional unstructured modalities such as medical images, biosignals,
+and genomic sequences.
 
 In healthcare, AI has shown significant potential to transform disease
 diagnosis, prognosis, and patient management by
 leveraging large and complex medical datasets including clinical records, medical images,
-and biosignals, etc. The following sections present the
+biosignals, and genomic profiles. The following sections present the
 foundational AI concepts that underpin this work, from classical machine learning to deep 
 learning architectures, along with the evaluation framework used to assess model performance.
 
@@ -142,11 +154,7 @@ Machine learning (ML) is a subfield of AI in which algorithms automatically lear
 from data to make predictions or decisions without being explicitly programmed for each 
 task. ML models are trained on historical data such as patient 
 clinical records, laboratory results, or annotated medical images and are then expected 
-to generalize to unseen cases. the idea is to pass data (features) and answers (labels)
-into some algorithm and have the algorithm (model) try to figure out the rules
-of producing those outcomes (labels). This approach however is only possible
-if you have a large dataset that you can pass to some model to which it will attempt
-and produce the rules to which that dataset and labels came from \cite{ibmml}.
+to generalize to unseen cases. Formally, each observation in the training corpus consists of an input feature vector paired with a known target label; the learning algorithm adjusts its internal parameters so that the mapping from inputs to outputs minimises a prescribed loss function over the training distribution. This inductive process is conditioned on the availability of a sufficiently large and representative labelled corpus: without adequate data, the estimated mapping is unreliable and unlikely to generalise to unseen examples \cite{ibmml}.
 In healthcare, ML has been applied to a wide range of 
 problems including disease classification, survival prediction, patient stratification, 
 and clinical decision support.

@@ -15,12 +15,24 @@ Chapter~1 established that these institutions operate as data silos:
 each custodian holds locally valuable patient data that it cannot, in
 practice, freely share with external parties.
 The regulatory frameworks that govern this reality -- the General Data
-Protection Regulation (GDPR) in the European Union and the Health
+Protection Regulation (GDPR) in the European Union, the Health
 Insurance Portability and Accountability Act (HIPAA) in the United
-States -- impose strict conditions on any cross-institutional transfer of
-patient data, conditions that a conventional centralised machine
-learning pipeline cannot satisfy without substantial legal and
-technical overhead \cite{gdpr2016regulation,hipaa1996health}.
+States, and, in the Algerian context directly applicable to this work,
+Law~18-07 of June~10,~2018 relative to the protection of
+natural persons in the processing of personal data, which
+establishes equivalent protections under the supervision
+of the Autorité Nationale de Protection des Données à
+Caractère Personnel (ANPDP)\footnote{Journal Officiel de la République
+Algérienne, No.~34, June~10,~2018. Law 18-07 relative to the protection
+of natural persons in the processing of personal data.} -- impose strict
+conditions on any cross-institutional transfer of patient data, conditions
+that a conventional centralised machine learning pipeline cannot satisfy
+without substantial legal and technical overhead
+\cite{gdpr2016regulation,hipaa1996health}.
+In Algeria, the same obligations apply under
+Law~18-07, which governs any processing of health data
+by Algerian institutions regardless of whether the data
+are transferred abroad.
 
 Yet the imperative for collaborative learning in clinical AI is equally
 compelling.
@@ -886,7 +898,7 @@ instance because patient demographics, scanner hardware, and imaging
 protocols vary substantially, forcing all local models to converge
 to a common parameter vector may result in a model that performs
 adequately on average but poorly at each individual site
-\cite{kairouz2021advances,ghosh2026advancements}.
+\cite{kairouz2021advances,ghosh2020clustered}.
 
 Personalised federated learning (PFL) relaxes the single-model
 objective by allowing each client to maintain its own local model
@@ -905,7 +917,7 @@ More recent work employs meta-learning formulations in which the
 global model is trained to serve as a good initialisation for
 rapid local adaptation, a strategy well suited to cross-silo
 scenarios where each client's distribution is stable over time
-\cite{ghosh2026advancements}.
+\cite{ghosh2020clustered}.
 
 In the breast MRI molecular subtype classification task studied in
 this thesis, the three simulated hospital clients hold partitions
@@ -996,7 +1008,7 @@ generally acceptable \cite{karimireddy2020scaffold,kairouz2021advances}.
 Personalised federated learning strategies complement the global
 aggregation step by allowing per-institution adaptation and are
 particularly attractive when site-specific distributions are
-stable and clinically meaningful \cite{ghosh2026advancements}.
+stable and clinically meaningful \cite{ghosh2020clustered}.
 
 The experimental evaluation in Chapter~4 compares FedAvg, FedProx,
 and a local fine-tuning personalisation strategy on the breast MRI
@@ -1102,7 +1114,7 @@ contextualise the performance of the primary strategies.
 %  \cite{arbaoui2025survey}           \cite{kaissis2020secure}
 %  \cite{rieke2020future}             \cite{sheller2020federated}
 %  \cite{guan2024federated}           \cite{nguyen2022federated}
-%  \cite{ghosh2026advancements}       \cite{yang2019federated}
+%  \cite{ghosh2020clustered}       \cite{yang2019federated}
 %  \cite{li2020fedprox}               \cite{li2020fednova}
 %  \cite{karimireddy2020scaffold}
 % ============================================================
@@ -1827,10 +1839,11 @@ characteristics of the four frameworks reviewed above.
 \end{figure}
 
 Flower is selected for this thesis based on three criteria:
-its framework-agnostic design, which allows the PyTorch ResNet
-backbone developed for the breast MRI classification task to be
-wrapped with minimal modification; its native support for the
-FedAvg and FedProx strategies evaluated in Chapter~4; and its
+its framework-agnostic design, which allows the PyTorch ConvNeXt-Nano
+backbone with Gated Attention MIL head developed for the breast MRI
+classification task to be wrapped with minimal modification;
+its native support for the FedAvg baseline and SCAFFOLD optimisation
+strategy evaluated in Chapter~4; and its
 simulation mode, which enables reproducible experiments on a
 single GPU machine without requiring a multi-machine cluster
 deployment \cite{beutel2022flower}.
@@ -1878,7 +1891,7 @@ The most directly related work on federated learning for breast
 cancer imaging is surveyed by Ghosh~et~al., who review federated
 approaches across five cancer imaging modalities including breast MRI,
 mammography, histopathology, and dermoscopy
-\cite{ghosh2026advancements}.
+\cite{ghosh2020clustered}.
 Their survey identifies class imbalance, non-IID subtype distributions
 across institutions, and the high dimensionality of volumetric
 DCE-MRI data as the three principal challenges for federated breast
@@ -1896,14 +1909,146 @@ conducted in Chapter~4.
 To the best of the authors' knowledge, no prior published work has
 applied federated learning to the molecular subtype classification
 of breast DCE-MRI using the publicly available Zenodo dataset
-\cite{dataset_breast_mri_zenodo} with the combination of
+\cite{alves2023breastmri} with the combination of
 class-imbalance correction through weighted sampling, progressive
 backbone unfreezing, and a systematic comparison of FedAvg and
-FedProx aggregation strategies adopted in this thesis.
+SCAFFOLD aggregation strategies under non-IID conditions adopted
+in this thesis.
 The present work therefore contributes an original experimental
 evaluation of cross-silo federated learning for a clinically
-significant four-class medical imaging task under realistic
-non-IID conditions.
+significant breast DCE-MRI classification task under binary
+and four-class formulations under realistic non-IID conditions.
+
+
+% ============================================================
+\section{Problem Statement}
+\label{sec:problem-statement}
+% ============================================================
+
+\subsection{Motivation}
+\label{sec:ps-motivation}
+
+The clinical deployment of deep learning systems for medical image analysis is
+fundamentally constrained by the fragmentation of patient data across healthcare
+institutions.
+Regulatory frameworks governing the processing of health records --- most notably
+the General Data Protection Regulation in the European Union
+\cite{gdpr2016regulation}, the Health Insurance Portability and Accountability
+Act in the United States \cite{hipaa1996health}, and Law~18-07 of
+June~10,~2018 in Algeria --- impose strict conditions on any
+cross-institutional transfer of protected health information, conditions that a
+conventional centralised training pipeline cannot satisfy without substantial legal
+and administrative overhead.
+In Algeria, the same obligations apply under
+Law~18-07, which governs any processing of health data
+by Algerian institutions regardless of whether the data
+are transferred abroad.
+As a consequence, the large, diverse, and representative datasets that deep
+learning models require for reliable generalisation are, in practice, inaccessible
+through centralisation: each institution's imaging archive constitutes an isolated
+silo that can neither be pooled with nor directly compared against those of
+neighbouring sites.
+
+Breast cancer molecular subtype classification from dynamic contrast-enhanced MRI
+exemplifies this tension.
+Accurately distinguishing Luminal~A, Luminal~B, HER2-enriched, and Triple-Negative
+subtypes from volumetric DCE-MRI data is clinically consequential --- subtype
+assignment directly determines therapeutic strategy --- yet the inter-institutional
+variability in scanner hardware, acquisition protocol, patient demographics, and
+subtype prevalence means that models trained at a single site are unlikely to
+generalise to other clinical environments \cite{ghosh2020clustered}.
+Federated learning offers a principled mechanism for exploiting multi-institutional
+data under these constraints by exchanging only model parameter updates rather than
+raw patient records.
+To the best of the authors' knowledge, no prior published work has applied federated
+learning to molecular subtype classification on the publicly available breast
+DCE-MRI cohort \cite{alves2023breastmri} with a variance-reduction aggregation
+strategy such as SCAFFOLD, leaving a significant gap in the empirical literature
+that this thesis addresses.
+
+
+\subsection{Research Questions}
+\label{sec:ps-research-questions}
+
+This thesis is organised around three research questions that progress from
+centralised baseline characterisation to federated optimisation:
+
+\begin{enumerate}
+
+  \item[\textbf{RQ1.}] What classification performance ceiling does a centralised
+  deep learning system achieve on breast DCE-MRI molecular subtype prediction
+  under severe class imbalance, and how does a clinically motivated binary
+  reformulation address the data scarcity constraint imposed by rare subtypes?
+
+  \item[\textbf{RQ2.}] How much classification performance is lost when training
+  is distributed across three simulated hospital clients with non-IID data
+  partitioning under the FedAvg aggregation strategy, and what is the
+  quantitative privacy-performance trade-off?
+
+  \item[\textbf{RQ3.}] Can SCAFFOLD's control-variate correction mechanism reduce
+  the convergence gap caused by statistical heterogeneity in a three-hospital
+  federated breast MRI setting, and to what extent does convergence-aware
+  aggregation recover performance lost to client drift?
+
+\end{enumerate}
+
+
+\subsection{Formal Hypotheses}
+\label{sec:ps-hypotheses}
+
+The three research questions yield the following testable hypotheses:
+
+\begin{enumerate}
+
+  \item[\textbf{H1.}] A ConvNeXt-Nano backbone with Gated Attention MIL, trained
+  with LDAM loss and ASAM optimisation, achieves higher macro F1 on the four-class
+  centralised task than a standard cross-entropy baseline, because the combination
+  of margin-based loss and sharpness-aware minimisation better handles the
+  10.4:1 class imbalance present in the dataset.
+
+  \item[\textbf{H2.}] FedAvg aggregation across three non-IID hospital clients
+  incurs a performance penalty relative to the centralised baseline, because local
+  gradient updates on heterogeneous data distributions cause client drift that is
+  not corrected by simple weighted averaging.
+
+  \item[\textbf{H3.}] SCAFFOLD's control-variate mechanism reduces the client
+  drift identified in~H2 and narrows the centralised-federated performance gap,
+  because it explicitly estimates and corrects the client-specific gradient bias
+  at each communication round.
+
+\end{enumerate}
+
+
+\subsection{Thesis Contributions}
+\label{sec:ps-contributions}
+
+This thesis makes the following original contributions to the federated medical
+imaging literature:
+
+\begin{enumerate}
+
+  \item[\textbf{C1.}] A three-stage centralised training pipeline --- combining
+  Label-Distribution-Aware Margin loss, Sharpness-Aware Minimisation, Stochastic
+  Weight Averaging, and classifier re-training (LDAM + ASAM + SWA + cRT) --- for
+  breast DCE-MRI molecular subtype classification under severe class imbalance,
+  evaluated over five-fold cross-validation with patient-level stratification.
+
+  \item[\textbf{C2.}] A clinically motivated binary reformulation of the molecular
+  subtype classification task that maps directly to the hormone therapy eligibility
+  decision boundary, demonstrated to be more tractable under federated constraints
+  than the four-class formulation.
+
+  \item[\textbf{C3.}] An empirical comparison of FedAvg and SCAFFOLD aggregation
+  strategies under three degrees of non-IID data heterogeneity
+  (Dirichlet $\alpha \in \{0.1,\, 0.5,\, 100\}$) on the publicly available breast
+  DCE-MRI dataset \cite{alves2023breastmri}, quantifying the convergence benefit
+  of control-variate correction.
+
+  \item[\textbf{C4.}] A proof-of-concept radiomic feature fusion experiment
+  combining hand-crafted PyRadiomics features with deep MIL embeddings, providing
+  an interpretable complement to the end-to-end deep learning pipeline.
+
+\end{enumerate}
 
 
 % ============================================================
