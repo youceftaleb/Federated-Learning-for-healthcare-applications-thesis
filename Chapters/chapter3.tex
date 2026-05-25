@@ -930,7 +930,7 @@ severity: the imbalance ratio drops from 10.4:1
 3.1:1 (Luminal versus Non-Luminal), tripling the
 effective minority class size from 46 to 180 samples.
 This makes the SCAFFOLD convergence behaviour
-measurable within the 50-round budget and the LDAM
+measurable within the 20-round budget and the LDAM
 margin calibration stable across folds.
 Without this reformulation, the HER2 per-client sample
 counts under any realistic Dirichlet partition would drop to
@@ -997,16 +997,15 @@ and is therefore excluded.
 
 \begin{table}[htbp]
   \centering
-  \caption{Binary class distribution across three
-    simulated hospital clients under Dirichlet
-    partitioning with $\alpha=0.5$, seed=42.
-    Hospital~3 has a reversed dominant class,
-    satisfying genuine non-IID heterogeneity.
-    Hospitals~1 and~2 have minimal Non-Luminal
-    signal (6 and 4 patients respectively),
-    making their local gradients systematically
-    biased toward the Luminal class and directly
-    motivating SCAFFOLD's drift correction.}
+  \caption{Binary class distribution across three simulated
+    hospital clients under Dirichlet $\alpha=0.5$, seed=42,
+    applied to the fold~0 training set (590 patients).
+    Hospital~3 has a reversed dominant class, satisfying
+    genuine non-IID heterogeneity.
+    Hospitals~1 and~2 hold the majority of Luminal
+    training signal while Hospital~3 concentrates
+    Non-Luminal cases, directly motivating
+    SCAFFOLD's drift correction.}
   \label{tab:dirichlet-partition}
   \renewcommand{\arraystretch}{1.3}
   \begin{tabular}{lcccc}
@@ -1015,15 +1014,42 @@ and is therefore excluded.
       & \textbf{Non-Luminal (1)} & \textbf{Total}
       & \textbf{Dominant class} \\
     \midrule
-    Hospital 1 & 433 & 6   & 439
-      & Luminal (72:1) \\
-    Hospital 2 & 86  & 4   & 90
-      & Luminal (21.5:1) \\
-    Hospital 3 & 38  & 170 & 208
-      & Non-Luminal (0.22:1) \\
+    Hospital 1 & 354 & 58  & 412 & Luminal (6.1:1) \\
+    Hospital 2 & 63  & 44  & 107 & Luminal (1.4:1) \\
+    Hospital 3 & 32  & 39  &  71 & Non-Luminal (0.8:1) \\
     \midrule
-    \textbf{Total} & \textbf{557} & \textbf{180}
-      & \textbf{737} & \textbf{3.1:1} \\
+    \textbf{Total} & \textbf{449} & \textbf{141}
+      & \textbf{590} & \textbf{3.2:1} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The near-IID comparison partition ($\alpha=100$, same seed)
+is shown in Table~\ref{tab:partition-noniid}.
+Under this configuration all three hospitals are
+Luminal-dominant with similar ratios, providing a
+controlled baseline for isolating the effect of
+statistical heterogeneity on convergence.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Near-IID binary partition ($\alpha=100$, seed=42,
+    fold~0 training set). All hospitals share the same
+    dominant class, used as convergence comparison baseline.}
+  \label{tab:partition-noniid}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Client} & \textbf{Luminal (0)}
+      & \textbf{Non-Luminal (1)} & \textbf{Total}
+      & \textbf{Dominant class} \\
+    \midrule
+    Hospital 1 & 159 & 38 & 197 & Luminal (4.2:1) \\
+    Hospital 2 & 148 & 53 & 201 & Luminal (2.8:1) \\
+    Hospital 3 & 142 & 50 & 192 & Luminal (2.8:1) \\
+    \midrule
+    \textbf{Total} & \textbf{449} & \textbf{141}
+      & \textbf{590} & \textbf{3.2:1} \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1105,8 +1131,8 @@ model, but its convergence guarantee only reaches a
 \emph{neighbourhood} of the optimum whose size grows
 with the heterogeneity parameter $\mu$.
 FedNova \cite{li2020fednova} addresses objective
-inconsistency from variable local steps, but in our
-setting all clients perform exactly $E=5$ local epochs,
+inconsistency from variable local steps, but in this
+setting all clients perform exactly $E=3$ local epochs,
 so this inconsistency is absent by construction.
 SCAFFOLD \cite{karimireddy2020scaffold} eliminates
 client drift \emph{exactly} using control variates and
@@ -1198,12 +1224,54 @@ to all clients as the initialisation for round $t+1$.
 \label{sec:fl-optimised}
 % ------------------------------------------------------------
 
-% TODO — fill this section once FL experiments are complete.
-% Expected content:
-% - SCAFFOLD with control variates (chosen over FedProx)
-% - Non-IID degree comparison (alpha = 0.1, 0.5, 100)
-% - Communication round budget T and local epoch count E
-% - Results reported in Section 4.5
+Four optimisation variants are evaluated against the
+FedAvg baseline, yielding six experimental runs in total.
+
+\textbf{Run~1 --- FedAvg, $\alpha=0.5$} (primary baseline):
+Standard weighted averaging with no drift correction.
+Defines the unoptimised lower bound.
+
+\textbf{Run~2 --- Momentum-FedAvg, $\alpha=0.5$}:
+Server-side momentum ($\beta=0.9$) applied to the
+aggregated update direction across rounds.
+The server update becomes:
+\begin{equation}
+  \mathbf{v}^{(t+1)} = \beta\,\mathbf{v}^{(t)}
+    + \Delta\mathbf{w}^{(t)}, \quad
+  \mathbf{w}^{(t+1)} = \mathbf{w}^{(t)}
+    + \eta_s\,\mathbf{v}^{(t+1)},
+  \label{eq:momentum-fedavg}
+\end{equation}
+where $\eta_s=1.0$ is the server learning rate.
+Momentum smooths oscillations in the server update
+direction that are amplified by non-IID client drift,
+improving effective use of the 20-round budget.
+
+\textbf{Run~3 --- SCAFFOLD, $\alpha=0.5$} (primary contribution):
+Control-variate drift correction as described in
+Section~\ref{sec:scaffold}.
+Directly addresses client drift caused by
+Hospital~3's reversed dominant class.
+
+\textbf{Run~4 --- SCAFFOLD + FedSCRT, $\alpha=0.5$}
+(federated classifier retraining):
+After $R=20$ SCAFFOLD rounds, the global backbone
+is frozen and each hospital retrains a balanced
+classifier head locally (300 epochs, 10 seeds).
+The three heads are aggregated by the Flower server
+via weighted FedAvg.
+This stage addresses the head miscalibration that
+persists after SCAFFOLD convergence, extending the
+Classifier Retraining technique of
+\cite{cao2019ldam} to the federated setting.
+
+\textbf{Runs~5--6 --- FedAvg and SCAFFOLD, $\alpha=100$}:
+Near-IID comparison partitions in which all three
+hospitals share the same dominant class
+(Table~\ref{tab:partition-noniid}).
+Performance under near-IID conditions quantifies
+how much of the SCAFFOLD gain is attributable to
+statistical heterogeneity versus other factors.
 
 
 % ============================================================
@@ -1253,7 +1321,7 @@ features outperforms either alone
 \cite{guan2024federated,ghosh2020clustered}.
 
 \textbf{Whole-breast analysis without segmentation.}
-Standard tumour radiomics requires a mask; our
+Standard tumour radiomics requires a mask; the
 dataset provides none.
 Whole-breast radiomics instead captures global
 enhancement kinetics and parenchymal texture,
