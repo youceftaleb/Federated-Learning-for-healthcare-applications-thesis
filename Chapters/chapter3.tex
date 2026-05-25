@@ -933,8 +933,8 @@ This makes the SCAFFOLD convergence behaviour
 measurable within the 50-round budget and the LDAM
 margin calibration stable across folds.
 Without this reformulation, the HER2 per-client sample
-counts under the $\alpha=0.1$ partition would drop to
-single digits at Hospital~3, making convergence
+counts under any realistic Dirichlet partition would drop to
+single digits at the smaller clients, making convergence
 monitoring statistically meaningless.
 
 
@@ -961,52 +961,66 @@ parameter $\alpha$:
 \end{equation}
 where $p_{c,k}$ is the proportion of class $c$ patients
 assigned to client $k$.
-A value of $\alpha=0.1$ is selected as the primary
-experimental configuration, which produces strong
-statistical heterogeneity with at least one client
-holding a dominant class different from the population
-majority.
-A secondary comparison with $\alpha=0.5$ (all clients
-Luminal-dominant but at different ratios) is also
-conducted to isolate the effect of dominant-class
-reversal on convergence.
+After empirically verifying the Dirichlet partition
+output with \texttt{seed=42}, $\alpha=0.1$ produces
+a degenerate split (Hospital~1: 734 patients,
+Hospital~2: 1 patient, Hospital~3: 2 patients) that
+is experimentally unusable for federated learning.
+$\alpha = 0.5$ with the same seed produces a clinically
+realistic and genuinely non-IID partition in which
+Hospital~3 has a reversed dominant class
+(Non-Luminal dominant, 0.22:1), satisfying the
+true non-IID requirement while maintaining
+computationally tractable client sizes.
+$\alpha = 0.5$ is therefore selected as the primary
+experimental configuration.
 Table~\ref{tab:dirichlet-partition} reports the
-binary class distribution per client under
-Dirichlet $\alpha=0.1$, the primary experiment
-configuration. Hospital~2 holds a Non-Luminal
-majority (0.6:1), representing a hypothetical
-specialised hereditary cancer clinic where
-BRCA-mutation patients disproportionately present
-with Triple-Negative and HER2-enriched subtypes.
-This ensures a true non-IID condition in which
+resulting per-client binary class distribution.
+Hospital~3 represents a specialised hereditary
+cancer centre where BRCA-mutation patients
+disproportionately present with Triple-Negative
+and HER2-enriched (Non-Luminal) subtypes, yielding
+a reversed dominant class (0.22:1).
+This ensures the true non-IID condition in which
 client dominant classes differ, not merely their
-imbalance ratios. A comparison experiment with
-$\alpha=0.5$ (all hospitals Luminal-dominant but
-at different ratios) is also reported in
-Section~\ref{sec:fl-results} to isolate the
-effect of dominant-class reversal on convergence.
+imbalance ratios.
+The partition is generated deterministically
+using \texttt{numpy.random.default\_rng(42)}
+with concentration parameter $\alpha = 0.5$,
+ensuring full reproducibility.
+An $\alpha=100$ near-IID partition serves as
+a comparison baseline in Chapter~4.
+The $\alpha=0.1$ configuration was tested but
+produces a degenerate split under this seed
+(734 patients assigned to a single client)
+and is therefore excluded.
 
 \begin{table}[htbp]
   \centering
-  \caption{Binary data partition across three simulated
-    hospital clients under Dirichlet $\alpha=0.1$
-    (primary experiment). Hospital~2 is Non-Luminal
-    dominant, simulating a specialised hereditary cancer
-    clinic where BRCA-mutation patients predominate.
-    This partition satisfies the true non-IID requirement
-    that at least one client has a different dominant
-    class from the population majority.}
+  \caption{Binary class distribution across three
+    simulated hospital clients under Dirichlet
+    partitioning with $\alpha=0.5$, seed=42.
+    Hospital~3 has a reversed dominant class,
+    satisfying genuine non-IID heterogeneity.
+    Hospitals~1 and~2 have minimal Non-Luminal
+    signal (6 and 4 patients respectively),
+    making their local gradients systematically
+    biased toward the Luminal class and directly
+    motivating SCAFFOLD's drift correction.}
   \label{tab:dirichlet-partition}
   \renewcommand{\arraystretch}{1.3}
   \begin{tabular}{lcccc}
     \toprule
     \textbf{Client} & \textbf{Luminal (0)}
       & \textbf{Non-Luminal (1)} & \textbf{Total}
-      & \textbf{Local ratio} \\
+      & \textbf{Dominant class} \\
     \midrule
-    Hospital 1 & 450 & 20  & 470 & 22.5:1 Luminal \\
-    Hospital 2 & 90  & 150 & 240 & 0.6:1 Non-Luminal \\
-    Hospital 3 & 17  & 10  & 27  & 1.7:1 Luminal \\
+    Hospital 1 & 433 & 6   & 439
+      & Luminal (72:1) \\
+    Hospital 2 & 86  & 4   & 90
+      & Luminal (21.5:1) \\
+    Hospital 3 & 38  & 170 & 208
+      & Non-Luminal (0.22:1) \\
     \midrule
     \textbf{Total} & \textbf{557} & \textbf{180}
       & \textbf{737} & \textbf{3.1:1} \\
@@ -1015,23 +1029,25 @@ effect of dominant-class reversal on convergence.
 \end{table}
 
 The impact of the heterogeneity parameter on convergence is
-assessed by running experiments with $\alpha \in
-\{0.1, 0.5, 100\}$, spanning the range from extreme
-non-IID (each client dominated by a single class) to
-near-IID (uniform class distribution across clients).
-These three configurations correspond to the worst-case
-clinical scenario, the realistic scenario, and the idealised
-data-sharing scenario respectively.
+assessed by running experiments with $\alpha \in \{0.5, 100\}$,
+spanning the range from realistic non-IID heterogeneity
+to near-IID (uniform class distribution across clients).
+These two configurations correspond to the primary clinical
+scenario (Hospital~3 Non-Luminal dominant) and the idealised
+data-sharing baseline respectively.
+The $\alpha=0.1$ configuration was excluded because it
+produces a degenerate partition under seed=42.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.85\linewidth]{figures/ch3_dirichlet_partition.pdf}
   \caption{Class distribution across the three simulated hospital
-    clients under Dirichlet partitioning with $\alpha=0.1$
-    (primary experiment). Each stacked bar shows the proportion of
-    each molecular subtype held by one client. Hospital~2 is
-    Non-Luminal dominant, reflecting the true non-IID condition
-    required to stress-test convergence-aware aggregation.}
+    clients under Dirichlet partitioning with $\alpha=0.5$,
+    seed=42 (primary experiment). Each stacked bar shows the
+    proportion of each molecular subtype held by one client.
+    Hospital~3 is Non-Luminal dominant, reflecting the true
+    non-IID condition required to stress-test convergence-aware
+    aggregation.}
   \label{fig:dirichlet-partition}
 \end{figure}
 
@@ -1044,7 +1060,7 @@ data-sharing scenario respectively.
 The binary-labelled dataset is partitioned into three
 simulated hospital clients using the Dirichlet strategy
 described in Section~\ref{sec:noniid-partition} with
-$\alpha = 0.1$ (primary experiment).
+$\alpha = 0.5$ (primary experiment).
 Each client runs the same local training pipeline as the
 centralised experiment (Stages~1 through~3), operating
 exclusively on its local partition.
@@ -1098,6 +1114,18 @@ is the only algorithm with a convergence guarantee
 matching centralised SGD regardless of heterogeneity
 degree.
 Table~\ref{tab:agg-choice} summarises this reasoning.
+
+The empirical partition reinforces this choice:
+Hospitals~1 and~2 together hold only 10 of the
+180 Non-Luminal training patients, meaning their
+local gradient signals for this class are based
+on fewer than 5 examples each.
+Under FedAvg, these two clients would contribute
+Luminal-biased updates that suppress the global
+model's Non-Luminal recognition, regardless of
+the accurate Non-Luminal gradients from Hospital~3.
+SCAFFOLD's per-client control variates correct
+precisely this systematic bias.
 
 \begin{table}[htbp]
   \centering
