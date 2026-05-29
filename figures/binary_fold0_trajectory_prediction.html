@@ -1,0 +1,137 @@
+
+<h2 class="sr-only">Binary fold 0 training trajectory with projection to final F1</h2>
+<style>
+.wrap{padding:.5rem 0;font-family:var(--font-sans)}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:1.2rem}
+.card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.75rem .875rem}
+.card-label{font-size:11px;color:var(--color-text-secondary);margin:0 0 3px}
+.card-val{font-size:20px;font-weight:500;color:var(--color-text-primary);margin:0}
+.card-sub{font-size:11px;color:var(--color-text-secondary);margin:2px 0 0}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;font-size:11px;color:var(--color-text-secondary)}
+.leg{display:flex;align-items:center;gap:5px}
+.leg-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.note{font-size:11px;color:var(--color-text-secondary);margin-top:8px;font-style:italic}
+</style>
+<div class="wrap">
+<div class="cards">
+  <div class="card">
+    <p class="card-label">Stage 1 best</p>
+    <p class="card-val">0.5225</p>
+    <p class="card-sub">epoch 6 of 20</p>
+  </div>
+  <div class="card">
+    <p class="card-label">Stage 2 best (so far)</p>
+    <p class="card-val">0.6161</p>
+    <p class="card-sub">epoch 18 of 80</p>
+  </div>
+  <div class="card">
+    <p class="card-label">Projected Stage 2 peak</p>
+    <p class="card-val">0.65–0.70</p>
+    <p class="card-sub">after ASAM ep55 + SWA ep65</p>
+  </div>
+  <div class="card">
+    <p class="card-label">Projected cRT final</p>
+    <p class="card-val">0.70–0.75</p>
+    <p class="card-sub">+0.04–0.06 from cRT</p>
+  </div>
+</div>
+
+<div class="legend">
+  <span class="leg"><span class="leg-sq" style="background:#378ADD"></span>Stage 2 actual F1</span>
+  <span class="leg"><span class="leg-sq" style="background:#1D9E75"></span>Upper envelope</span>
+  <span class="leg"><span class="leg-sq" style="background:#EF9F27;opacity:.5"></span>Projection zone</span>
+  <span class="leg"><span class="leg-sq" style="background:#D4537E;opacity:.5"></span>cRT gain zone</span>
+</div>
+
+<div style="position:relative;height:320px">
+  <canvas id="trajChart" role="img" aria-label="Binary fold 0 training trajectory showing F1 climbing from 0.52 to 0.62 by epoch 24, with projection to 0.70-0.75 after cRT">Stage 2 F1 trajectory: actual 0.52-0.62, projected peak 0.65-0.70, cRT final 0.70-0.75</canvas>
+</div>
+
+<div style="position:relative;height:120px;margin-top:1rem">
+  <canvas id="projChart" role="img" aria-label="Final F1 projections across methods: centralised cRT 0.70-0.75, fusion 0.73-0.78, FL SCAFFOLD 0.65-0.72">Final F1 projections by method</canvas>
+</div>
+<p class="note">Projection based on upper envelope slope (ep6→18: +0.030/6ep) and 4-class cRT gain patterns. ASAM activation at ep55 expected to add +0.02–0.04.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const gridCol = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+const tickCol = isDark ? '#B4B2A9' : '#5F5E5A';
+const labelCol = isDark ? '#888780' : '#888780';
+
+const actual = [
+  null,
+  0.5236,0.4989,0.4676,0.5020,0.4473,0.5859,0.5253,0.5451,0.5265,0.5352,
+  0.5665,0.5665,0.5407,0.5215,0.6111,0.5606,0.5393,0.6161,0.6055,0.5942,
+  0.5484,0.5071,0.5191,null
+];
+
+const envelope = [
+  null,
+  0.5236,0.5236,0.5236,0.5236,0.5236,0.5859,0.5859,0.5859,0.5859,0.5859,
+  0.5859,0.5859,0.5859,0.5859,0.6111,0.6111,0.6111,0.6161,0.6161,0.6161,
+  0.6161,0.6161,0.6161,null
+];
+
+const labels = Array.from({length:81},(_,i)=>i===0?'':i.toString());
+
+const projHigh = labels.map((l,i)=> i<24?null : i<=54?0.60+0.0015*(i-24): i<=65?0.68+0.003*(i-55): 0.70+0.001*(i-65));
+const projLow = labels.map((l,i)=> i<24?null : i<=54?0.62+0.001*(i-24): i<=65?0.65+0.002*(i-55): 0.68+0.001*(i-65));
+
+const crtHigh = labels.map((l,i)=> i<80?null:0.75);
+const crtLow = labels.map((l,i)=> i<80?null:0.70);
+
+new Chart(document.getElementById('trajChart'),{
+  type:'line',
+  data:{
+    labels,
+    datasets:[
+      {label:'Actual F1',data:actual,borderColor:'#378ADD',borderWidth:1.5,pointRadius:2,pointBackgroundColor:'#378ADD',tension:0.3,fill:false,spanGaps:false},
+      {label:'Upper envelope',data:envelope,borderColor:'#1D9E75',borderWidth:2,pointRadius:0,borderDash:[4,3],tension:0,fill:false,spanGaps:false},
+      {label:'Projection high',data:projHigh,borderColor:'#EF9F27',borderWidth:1,pointRadius:0,borderDash:[6,4],fill:'+1',backgroundColor:isDark?'rgba(239,159,39,0.12)':'rgba(239,159,39,0.08)',tension:0.4,spanGaps:false},
+      {label:'Projection low',data:projLow,borderColor:'#EF9F27',borderWidth:1,pointRadius:0,borderDash:[6,4],fill:false,tension:0.4,spanGaps:false},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      annotation:{},
+      tooltip:{mode:'index',intersect:false,
+        callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.raw?.toFixed(3)}}
+    },
+    scales:{
+      y:{min:0.40,max:0.78,
+        ticks:{color:tickCol,callback:v=>v.toFixed(2)},
+        grid:{color:gridCol},
+        title:{display:true,text:'Macro F1',color:labelCol,font:{size:11}}
+      },
+      x:{ticks:{color:tickCol,maxTicksLimit:10,callback:(v,i)=>i%10===0&&i>0?i:''},
+        grid:{color:gridCol},
+        title:{display:true,text:'Stage 2 epoch',color:labelCol,font:{size:11}}
+      }
+    }
+  }
+});
+
+new Chart(document.getElementById('projChart'),{
+  type:'bar',
+  data:{
+    labels:['Binary centralised\n(cRT)','Deep + Radiomics\nfusion','FL FedAvg\n(alpha=0.5)','FL SCAFFOLD\n(alpha=0.5)','FL FedSCRT\n(alpha=0.5)'],
+    datasets:[
+      {label:'Conservative',data:[0.70,0.73,0.60,0.65,0.67],backgroundColor:isDark?'#3C3489':'#AFA9EC',borderRadius:3},
+      {label:'Optimistic',data:[0.75,0.78,0.68,0.72,0.75],backgroundColor:isDark?'#7F77DD':'#534AB7',borderRadius:3},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>'F1 '+ctx.raw.toFixed(2)}}
+    },
+    scales:{
+      y:{min:0.55,max:0.82,ticks:{color:tickCol,callback:v=>v.toFixed(2)},grid:{color:gridCol}},
+      x:{ticks:{color:tickCol,font:{size:10}},grid:{display:false}}
+    }
+  }
+});
+</script>
