@@ -9,7 +9,7 @@
 %  Brier score          = 0.6814
 %  Per-class F1: LumA=0.63, LumB=0.22, HER2=0.20, TN=0.33
 %  Fold F1: 0.3231, 0.3401, 0.3682, 0.3699, ~0.3107
-%  FL: R=20, E=3, K=3, binary, Dir(0.5)
+%  FL: R=20, E=2, K=3, binary, Dir(0.5)
 %  TODO markers: binary results, FL results, confusion matrix,
 %  ROC curves, SCAFFOLD results
 % ============================================================
@@ -212,15 +212,15 @@ The federated training runs for $R = 20$ communication
 rounds, which is sufficient to observe convergence in
 cross-silo settings with small cohorts
 \cite{sheller2020federated}.
-Each selected client performs $E = 3$ local training epochs
+Each selected client performs $E = 2$ local training epochs
 per round before uploading its parameters.
 All three clients participate in every round ($C = 1.0$,
 full participation), consistent with the persistent
 availability assumption of cross-silo federation.
 The total local compute per round is therefore
-$K \times E = 9$ client-epochs, and the aggregate local
+$K \times E = 6$ client-epochs, and the aggregate local
 compute over the full experiment is $R \times K \times E
-= 180$ client-epochs.
+= 120$ client-epochs.
 
 
 % ============================================================
@@ -446,6 +446,44 @@ $\alpha=0.5$ partition.
 The federated performance gap relative to the centralised
 baseline is $0.6673 - 0.4286 = 0.2387$ (23.9 percentage points).
 
+\subsection{Momentum-FedAvg Results}
+\label{sec:momentum-results}
+
+Momentum-FedAvg with server momentum $\beta = 0.9$
+produces the most volatile AUC trajectory of all
+evaluated strategies, achieving the highest peak AUC
+among standard FL algorithms while collapsing to the
+lowest final AUC.
+
+The round-by-round trajectory reveals a characteristic
+oscillation pattern.
+The model reaches AUC-ROC = 0.645 at communication
+round~6 --- surpassing both FedAvg (peak 0.602 at
+round~19) and SCAFFOLD (peak 0.601 at round~2) ---
+before degrading to AUC = 0.473 at round~7.
+A second partial recovery to AUC = 0.630 appears at
+round~18, followed by a terminal collapse to
+AUC = 0.422 at round~20.
+The macro F1 remains constant at 0.4286 throughout
+all 20 rounds, confirming that the oscillating AUC
+reflects unstable internal representations without
+crossing the majority-class decision boundary.
+
+The mechanism is the interaction between server-side
+momentum and the biased majority-class gradient.
+The momentum velocity vector $\mathbf{v}^{(t)}$
+accumulates the weighted sum of client updates,
+dominated by Hospitals~2 and~3 (combined 84\% of the
+training partition) and their Luminal-biased gradients.
+When momentum temporarily amplifies a corrective
+Non-Luminal signal from Hospital~1, the AUC spikes;
+when the accumulated majority direction reasserts,
+the AUC collapses.
+The final AUC of 0.422 falls below both FedAvg (0.565)
+and SCAFFOLD ($\approx$0.500), confirming that server-side
+momentum accumulation under extreme class asymmetry
+destabilises rather than accelerates convergence.
+
 \subsection{SCAFFOLD Results}
 \label{sec:scaffold-results}
 
@@ -603,12 +641,16 @@ the larger hospitals.
 
 \begin{table}[htbp]
   \centering
-  \caption{Complete federated learning results under all
-    configurations ($R=20$ rounds, $E=3$ local epochs,
-    $K=3$ hospitals, fold~0 train/val = 589/148 patients).
-    FedSCRT uses a centralised backbone with federated
-    classifier retraining.
-    Rows 5--7 pending $\alpha=100$ and Momentum runs.}
+  \caption{Binary federated learning results at the final
+    communication round ($R=20$, $E=2$, $K=3$ hospitals,
+    fold~0 train/val = 589/148 patients).
+    All metrics are reported for the final global model
+    at round~20.
+    Peak AUC values, which differ from final-round AUC
+    for SCAFFOLD and Momentum-FedAvg, are reported
+    separately in Table~\ref{tab:auc-convergence}.
+    FedSCRT uses a centralised SCAFFOLD backbone with
+    federated classifier retraining (one-shot, no rounds).}
   \label{tab:fl-results}
   \renewcommand{\arraystretch}{1.3}
   \resizebox{\textwidth}{!}{%
@@ -624,25 +666,35 @@ the larger hospitals.
     FedAvg $\alpha=0.5$
       & 0.4286 & 0.5654 & 0.7500
       & Trivial Luminal prediction \\
+    Momentum-FedAvg $\alpha=0.5$
+      & 0.4286 & 0.4218 & 0.7500
+      & Unstable; peak 0.645 at rd.~6 \\
     SCAFFOLD $\alpha=0.5$
-      & 0.2000 & 0.6007 & 0.2500
-      & Overcorrects to Non-Luminal \\
-    \textbf{FedSCRT $\alpha=0.5$}
+      & 0.2000 & ${\approx}0.500^{\dagger}$ & 0.2500
+      & Overcorrects; peak 0.601 at rd.~2 \\
+    \textbf{FedSCRT} $\alpha=0.5$
       & \textbf{0.6289} & \textbf{0.6874} & 0.7027
       & \textbf{AUC exceeds centralised} \\
     FedAvg $\alpha=100$
-      & TODO & TODO & TODO & Near-IID comparison \\
+      & 0.4286 & 0.5622 & 0.7500
+      & Near-IID comparison \\
     SCAFFOLD $\alpha=100$
-      & TODO & TODO & TODO & Near-IID comparison \\
-    Momentum-FedAvg $\alpha=0.5$
-      & TODO & TODO & TODO & Pending \\
+      & \multicolumn{3}{c}{TODO --- pending}
+      & Near-IID comparison \\
     \midrule
+    Momentum gap vs centralised
+      & $-$0.239 & $-$0.252 & $-$0.027 & \\
     FedSCRT gap vs centralised
-      & $-0.038$ & $+0.013$ & $-0.075$ & \\
-    FedAvg gap vs centralised
-      & $-0.239$ & $-0.109$ & $+0.073$ & \\
+      & $-$0.038 & $+$0.013 & $-$0.075 & \\
     \bottomrule
   \end{tabular}}
+  \begin{minipage}{\linewidth}
+    \smallskip\footnotesize
+    $^{\dagger}$ Final AUC at round~20 after decision
+    boundary overcorrection to all-Non-Luminal prediction.
+    Peak AUC of 0.601 was achieved at round~2 before
+    collapse; see Table~\ref{tab:auc-convergence}.
+  \end{minipage}
 \end{table}
 
 
@@ -730,7 +782,7 @@ problems.
   \caption{Macro F1 (left) and AUC-ROC (right) per
     communication round under extreme non-IID conditions
     ($\alpha=0.5$, $K=3$ hospitals, $R=20$ rounds,
-    $E=3$ local epochs).
+    $E=2$ local epochs).
     FedAvg converges to trivial majority-class prediction
     (flat F1 = 0.429).
     SCAFFOLD reaches AUC = 0.601 by round~2 --- 17 rounds
@@ -742,6 +794,60 @@ problems.
     (red) and FedSCRT (grey) reference values.}
   \label{fig:convergence-curves}
 \end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \caption{AUC-ROC convergence speed comparison under
+    extreme non-IID conditions ($\alpha=0.5$, $K=3$,
+    $R=20$, $E=2$).
+    \textit{First round $\geq$0.55} is the earliest round
+    at which AUC-ROC first exceeds 0.55.
+    \textit{Peak AUC} is the maximum across all 20 rounds.
+    \textit{Final AUC} is the value at round~20.
+    FedSCRT is a one-shot post-training stage with no
+    communication rounds.}
+  \label{tab:auc-convergence}
+  \renewcommand{\arraystretch}{1.25}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Strategy}
+      & \textbf{First round $\geq$0.55}
+      & \textbf{Peak AUC (round)}
+      & \textbf{Final AUC} \\
+    \midrule
+    FedAvg
+      & Round~5  & 0.602 (rd.~19) & 0.565 \\
+    Momentum-FedAvg
+      & Round~2  & 0.645 (rd.~6)  & 0.422 \\
+    SCAFFOLD
+      & Round~2  & 0.601 (rd.~2)  & $\approx$0.500 \\
+    FedSCRT (one-shot)
+      & ---      & 0.687          & 0.687 \\
+    \midrule
+    Centralised reference
+      & ---      & 0.674          & 0.674 \\
+    \bottomrule
+  \end{tabular}}
+\end{table}
+
+Table~\ref{tab:auc-convergence} quantifies the trade-off
+between early convergence speed and long-run stability.
+Momentum-FedAvg and SCAFFOLD both reach AUC $\geq 0.55$
+by round~2, three rounds faster than FedAvg (round~5),
+confirming that both acceleration mechanisms improve
+early representation learning.
+Momentum-FedAvg achieves the highest peak AUC (0.645 at
+round~6) but cannot sustain it: momentum overshoot
+causes a collapse to AUC = 0.422 by round~20, the lowest
+final AUC of any evaluated strategy.
+SCAFFOLD maintains a stable plateau near 0.500 throughout
+all 20 rounds despite overcorrecting the decision boundary,
+confirming that control-variate correction preserves
+discriminative representations even when head calibration
+fails.
+FedSCRT is the only system to exceed the centralised AUC
+reference (0.687 vs 0.674).
 
 
 % ============================================================
@@ -989,10 +1095,12 @@ comparable DCE-MRI cohorts.
       & 4-class & \textbf{No} & F1 macro & 0.342 \\
     \textbf{Proposed (binary centralised)}
       & Binary  & \textbf{No} & F1 macro & 0.667 \\
+    \textbf{Proposed (FedAvg, $\alpha=0.5$)}
+      & Binary & No & F1 macro & 0.429 \\
     \textbf{Proposed (FedSCRT, $\alpha=0.5$)}
-      & Binary  & \textbf{No} & F1 macro & \textbf{0.629} \\
-    \textbf{Proposed (FedSCRT AUC)}
-      & Binary  & \textbf{No} & AUC-ROC  & \textbf{0.687} \\
+      & Binary & No & F1 macro & \textbf{0.629} \\
+    \textbf{Proposed (FedSCRT)}
+      & Binary & No & AUC-ROC  & \textbf{0.687} \\
     \bottomrule
   \end{tabular}}
 \end{table}

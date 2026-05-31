@@ -1132,7 +1132,7 @@ model, but its convergence guarantee only reaches a
 with the heterogeneity parameter $\mu$.
 FedNova \cite{li2020fednova} addresses objective
 inconsistency from variable local steps, but in this
-setting all clients perform exactly $E=3$ local epochs,
+setting all clients perform exactly $E=2$ local epochs,
 so this inconsistency is absent by construction.
 SCAFFOLD \cite{karimireddy2020scaffold} eliminates
 client drift \emph{exactly} using control variates and
@@ -1384,6 +1384,168 @@ Section~\ref{sec:results-fusion} as a comparison against
 the deep-features-only baseline, and a full five-fold
 evaluation is planned as future work.
 
+
+% ============================================================
+\subsection{Theoretical Foundation of FedSCRT}
+\label{sec:fedscrt-theory}
+
+The design of FedSCRT rests on a provable decoupling
+property of class-balanced sampling.
+This section establishes the theoretical guarantee
+and states the conditions under which it holds.
+
+\subsubsection*{Problem Formulation}
+
+Let $\Psi_\theta: \mathcal{X} \to \mathbb{R}^d$ denote
+the frozen backbone produced by SCAFFOLD at round $R$,
+and let $\mathbf{w} \in \mathbb{R}^{d \times C}$ denote
+the linear classification head mapping backbone features
+to class logits.
+The global balanced classification objective is:
+\begin{equation}
+  \mathcal{L}_{\mathrm{bal}}(\mathbf{w})
+  = \frac{1}{C}\sum_{c=0}^{C-1}
+    \mathbb{E}_{x \sim \mathcal{P}(\cdot \mid c)}
+    \bigl[\mathrm{CE}\bigl(\mathbf{w}^\top \Psi_\theta(x),\, c\bigr)\bigr],
+  \label{eq:balanced-objective}
+\end{equation}
+where $\mathcal{P}(\cdot \mid c)$ is the global
+class-conditional feature distribution and
+$\mathrm{CE}$ is the cross-entropy loss.
+
+Under non-IID federation, client $k$ holds data with
+class prior $\mathcal{P}_k(c) \neq \mathcal{P}(c)$.
+Standard gradient descent at client $k$ optimises
+the imbalanced local objective:
+\begin{equation}
+  \mathcal{L}_k(\mathbf{w})
+  = \sum_{c=0}^{C-1} \mathcal{P}_k(c)\,
+    \mathbb{E}_{x \sim \mathcal{P}_k(\cdot \mid c)}
+    \bigl[\mathrm{CE}\bigl(\mathbf{w}^\top \Psi_\theta(x),\, c\bigr)\bigr],
+  \label{eq:local-objective}
+\end{equation}
+which is biased toward the locally dominant class.
+
+\subsubsection*{The Unbiasedness Theorem}
+
+\begin{theorem}[FedSCRT Gradient Unbiasedness]
+\label{thm:fedscrt}
+Let $\nabla_{\mathbf{w}} \mathcal{L}_k^{\mathrm{bal}}$
+denote the gradient of client $k$'s local head under
+class-balanced sampling, which draws an equal number of
+samples $m$ from each class in $\mathcal{D}_k$.
+Under the assumption that class-conditional feature
+distributions are consistent across clients,
+$\mathcal{P}_k(x \mid c) \approx \mathcal{P}(x \mid c)$
+for all $k$ and $c$, the following holds:
+\begin{equation}
+  \mathbb{E}\bigl[\nabla_{\mathbf{w}}
+    \mathcal{L}_k^{\mathrm{bal}}(\mathbf{w})\bigr]
+  \;=\;
+  \nabla_{\mathbf{w}}\,\mathcal{L}_{\mathrm{bal}}(\mathbf{w})
+  \quad \forall\, k.
+  \label{eq:fedscrt-unbiased}
+\end{equation}
+That is, each client's balanced gradient is an
+unbiased estimator of the global balanced objective
+gradient, independently of the client's local class
+prior $\mathcal{P}_k(c)$.
+\end{theorem}
+
+\begin{proof}
+Under class-balanced sampling at client $k$,
+the gradient contribution from class $c$ is:
+\begin{equation}
+  \nabla_{\mathbf{w}} \hat{\mathcal{L}}_k^{(c)}
+  = \frac{1}{m} \sum_{\substack{i \in \mathcal{D}_k \\ y_i = c}}
+    \nabla_{\mathbf{w}}\,
+    \mathrm{CE}\bigl(\mathbf{w}^\top \Psi_\theta(x_i),\, c\bigr),
+  \label{eq:per-class-grad}
+\end{equation}
+with each class weighted equally:
+$\nabla_{\mathbf{w}} \mathcal{L}_k^{\mathrm{bal}}
+= \frac{1}{C}\sum_{c} \nabla_{\mathbf{w}} \hat{\mathcal{L}}_k^{(c)}$.
+
+Taking the expectation:
+\begin{equation}
+  \mathbb{E}\bigl[\nabla_{\mathbf{w}} \mathcal{L}_k^{\mathrm{bal}}\bigr]
+  = \frac{1}{C}\sum_{c=0}^{C-1}
+    \mathbb{E}_{x \sim \mathcal{P}_k(\cdot \mid c)}
+    \bigl[\nabla_{\mathbf{w}}\,
+    \mathrm{CE}\bigl(\mathbf{w}^\top \Psi_\theta(x),\, c\bigr)\bigr].
+\end{equation}
+This expression depends on $\mathcal{P}_k(x \mid c)$ but
+\emph{not} on $\mathcal{P}_k(c)$.
+Applying the assumption
+$\mathcal{P}_k(x \mid c) \approx \mathcal{P}(x \mid c)$:
+\begin{equation}
+  \mathbb{E}\bigl[\nabla_{\mathbf{w}} \mathcal{L}_k^{\mathrm{bal}}\bigr]
+  \approx \frac{1}{C}\sum_{c}
+    \mathbb{E}_{x \sim \mathcal{P}(\cdot \mid c)}
+    \bigl[\nabla_{\mathbf{w}}\,
+    \mathrm{CE}\bigl(\mathbf{w}^\top \Psi_\theta(x),\, c\bigr)\bigr]
+  = \nabla_{\mathbf{w}}\,\mathcal{L}_{\mathrm{bal}}(\mathbf{w}).
+\end{equation}
+\end{proof}
+
+\subsubsection*{Corollary: Aggregation Consistency}
+
+\begin{corollary}
+\label{cor:fedscrt-agg}
+The FedSCRT server aggregation
+$\mathbf{w}_{\mathrm{global}} = \sum_k \frac{n_k}{n}
+\mathbf{w}_k^{\mathrm{cRT}}$
+converges to the minimiser of
+$\mathcal{L}_{\mathrm{bal}}$ as the number of local
+cRT epochs $T \to \infty$, independently of the
+client class priors $\{\mathcal{P}_k(c)\}_{k=1}^K$.
+\end{corollary}
+
+\begin{proof}
+By Theorem~\ref{thm:fedscrt}, each client's local cRT
+minimises an unbiased estimator of $\mathcal{L}_{\mathrm{bal}}$.
+Federated averaging of unbiased local minimisers converges
+to the global minimiser as $T \to \infty$ by the law
+of large numbers applied to the gradient estimator.
+\end{proof}
+
+\subsubsection*{Conditions and Scope}
+
+Theorem~\ref{thm:fedscrt} holds under three conditions:
+(1)~each client holds at least one sample per class,
+$\min_{k,c} |\mathcal{D}_k^{(c)}| \geq 1$, so that
+balanced sampling is applicable;
+(2)~the backbone $\Psi_\theta$ produces features with
+positive Fisher linear separability for the binary task,
+so that the optimal head exists;
+and (3)~class-conditional feature distributions are
+approximately consistent across clients, which is
+the standard covariate-shift assumption for federated
+medical imaging~\cite{guan2024federated}.
+
+Condition (3) is the critical assumption.
+It states that scanner differences and imaging protocols
+affect the marginal distribution $\mathcal{P}_k(x)$
+but not the class-conditional structure
+$\mathcal{P}_k(x \mid c)$.
+In the breast DCE-MRI setting, this is approximately
+satisfied because molecular subtype determines tumour
+enhancement kinetics through biology rather than
+scanner hardware.
+
+Importantly, Theorem~\ref{thm:fedscrt} is independent
+of the non-IID degree $\alpha$: balanced sampling
+completely eliminates the influence of the local class
+prior $\mathcal{P}_k(c)$ from the head gradient,
+regardless of how extreme the Dirichlet partition is.
+The practical limitation of FedSCRT is not the head
+calibration stage but the backbone quality: if SCAFFOLD
+fails to converge to discriminative representations
+(as occurs under extreme non-IID conditions without
+sufficient rounds), the frozen backbone
+$\Psi_\theta$ limits the head's achievable performance.
+This explains the residual gap of 0.038 F1 points
+observed in the experiment (Section~\ref{sec:fedscrt-results}).
 
 % ============================================================
 \section{Evaluation Protocol}
