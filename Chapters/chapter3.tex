@@ -1466,6 +1466,12 @@ with each class weighted equally:
 $\nabla_{\mathbf{w}} \mathcal{L}_k^{\mathrm{bal}}
 = \frac{1}{C}\sum_{c} \nabla_{\mathbf{w}} \hat{\mathcal{L}}_k^{(c)}$.
 
+Note that $\mathcal{P}_k(x \mid c)$ denotes the
+class-conditional feature distribution of the raw data
+at client~$k$, which is a property of the patient
+population and is invariant to the sampling scheme used
+during training.
+
 Taking the expectation:
 \begin{equation}
   \mathbb{E}\bigl[\nabla_{\mathbf{w}} \mathcal{L}_k^{\mathrm{bal}}\bigr]
@@ -1503,10 +1509,17 @@ client class priors $\{\mathcal{P}_k(c)\}_{k=1}^K$.
 
 \begin{proof}
 By Theorem~\ref{thm:fedscrt}, each client's local cRT
-minimises an unbiased estimator of $\mathcal{L}_{\mathrm{bal}}$.
-Federated averaging of unbiased local minimisers converges
-to the global minimiser as $T \to \infty$ by the law
-of large numbers applied to the gradient estimator.
+minimises an unbiased estimator of
+$\mathcal{L}_{\mathrm{bal}}$.
+Under standard SGD convergence assumptions (bounded
+gradient variance, diminishing step size, and a
+strongly convex or smooth loss landscape for the
+linear head), each local minimiser converges to the
+global minimiser of $\mathcal{L}_{\mathrm{bal}}$
+as $T \to \infty$.
+Federated averaging of converged local minimisers
+then yields the global minimiser by linearity
+of the expectation in equation~\eqref{eq:fedscrt-unbiased}.
 \end{proof}
 
 \subsubsection*{Conditions and Scope}

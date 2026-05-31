@@ -1,0 +1,230 @@
+%% ============================================================
+%%  LIST OF SYMBOLS AND NOTATION
+%% ============================================================
+\chapter*{List of Symbols and Notation}
+\addcontentsline{toc}{chapter}{List of Symbols and Notation}
+\label{chap:nomenclature}
+
+The following tables define the principal symbols and
+notation used throughout this thesis.
+Each symbol is listed with its definition and the section
+in which it is first introduced.
+
+%% ─── Federated Learning ────────────────────────────────────
+\section*{Federated Learning}
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{2.8cm} p{9.5cm} p{1.6cm}}
+  \hline
+  \textbf{Symbol} & \textbf{Definition} & \textbf{Section} \\
+  \hline
+  $K$
+    & Number of hospital clients in the federation
+    & §\ref{sec:fl-clients} \\
+  $R$
+    & Total number of communication rounds
+    & §\ref{sec:round-config} \\
+  $E$
+    & Number of local SGD epochs per round per client
+    & §\ref{sec:round-config} \\
+  $T$
+    & Number of cRT epochs in Stage~3 / FedSCRT
+    & §\ref{sec:stage3} \\
+  $\alpha$
+    & Dirichlet concentration parameter for non-IID
+      partitioning; smaller $\alpha$ yields more
+      heterogeneous distributions
+    & §\ref{sec:noniid-partition} \\
+  $n_k$
+    & Number of training samples at client $k$
+    & §\ref{eq:fedavg-ch3} \\
+  $n$
+    & Total training samples: $n = \sum_{k=1}^K n_k$
+    & §\ref{eq:fedavg-ch3} \\
+  $\mathbf{w}^{(t)}$
+    & Global model parameters at round $t$
+    & §\ref{sec:fedavg-baseline} \\
+  $\mathbf{w}_k^{(t)}$
+    & Local model parameters at client $k$ after round $t$
+    & §\ref{sec:fedavg-baseline} \\
+  $\mathbf{c}$
+    & SCAFFOLD server control variate
+    & §\ref{sec:scaffold} \\
+  $\mathbf{c}_k$
+    & SCAFFOLD client control variate for client $k$
+    & §\ref{sec:scaffold} \\
+  $\beta$
+    & Server momentum coefficient (Momentum-FedAvg)
+    & §\ref{sec:fl-optimised} \\
+  $\mathbf{v}^{(t)}$
+    & Server momentum velocity vector at round $t$
+    & §\ref{eq:momentum-fedavg} \\
+  $\eta_s$
+    & Server learning rate (global update step size)
+    & §\ref{eq:momentum-fedavg} \\
+  \hline
+\end{tabular}
+\end{center}
+
+%% ─── Model Architecture ────────────────────────────────────
+\section*{Model Architecture}
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{2.8cm} p{9.5cm} p{1.6cm}}
+  \hline
+  \textbf{Symbol} & \textbf{Definition} & \textbf{Section} \\
+  \hline
+  $\Psi_\theta$
+    & ConvNeXt-Nano backbone mapping input slice to
+      feature vector; $\theta$ denotes all backbone
+      parameters
+    & §\ref{sec:convnext-backbone} \\
+  $d$
+    & Backbone output feature dimension ($d = 640$)
+    & §\ref{sec:convnext-backbone} \\
+  $\mathbf{f}_k$
+    & Backbone feature vector for axial slice $k$:
+      $\mathbf{f}_k \in \mathbb{R}^{640}$
+    & §\ref{eq:proj} \\
+  $\mathbf{h}_k$
+    & Projected feature vector after MIL projection:
+      $\mathbf{h}_k \in \mathbb{R}^{256}$
+    & §\ref{eq:proj} \\
+  $a_k$
+    & Raw gated attention score for slice $k$
+    & §\ref{eq:gated-attention} \\
+  $\hat{a}_k$
+    & Softmax-normalised attention weight for slice $k$
+    & §\ref{eq:attn-softmax} \\
+  $\mathbf{z}$
+    & Volume-level MIL embedding:
+      $\mathbf{z} = \sum_k \hat{a}_k \mathbf{h}_k
+      \in \mathbb{R}^{256}$
+    & §\ref{eq:mil-aggregate} \\
+  $V,\, U$
+    & Gated attention weight matrices:
+      $V, U \in \mathbb{R}^{128 \times 256}$
+    & §\ref{eq:gated-attention} \\
+  $\mathbf{w}_{\mathrm{attn}}$
+    & Gated attention weight vector:
+      $\mathbf{w}_{\mathrm{attn}} \in \mathbb{R}^{128}$
+    & §\ref{eq:gated-attention} \\
+  $C$
+    & Number of output classes
+      ($C=4$ for 4-class; $C=2$ for binary)
+    & §\ref{sec:dataset-description} \\
+  $S$
+    & Number of axial slices per volume ($S = 64$)
+    & §\ref{sec:slice-extraction} \\
+  \hline
+\end{tabular}
+\end{center}
+
+%% ─── Loss Functions and Training ───────────────────────────
+\section*{Loss Functions and Training}
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{2.8cm} p{9.5cm} p{1.6cm}}
+  \hline
+  \textbf{Symbol} & \textbf{Definition} & \textbf{Section} \\
+  \hline
+  $\Delta_y$
+    & LDAM class-specific decision margin:
+      $\Delta_y = C_0 / n_y^{1/4}$
+    & §\ref{eq:ldam-margin} \\
+  $n_y$
+    & Number of training samples belonging to class $y$
+    & §\ref{eq:ldam-margin} \\
+  $C_0$
+    & LDAM margin normalisation constant
+    & §\ref{eq:ldam-margin} \\
+  $s$
+    & LDAM logit scaling factor ($s = 15$)
+    & §\ref{eq:ldam-loss} \\
+  $\rho$
+    & ASAM adaptive perturbation radius ($\rho = 0.05$)
+    & §\ref{sec:stage2} \\
+  $\sigma_{\mathrm{EMA}}$
+    & EMA decay coefficient ($\sigma_{\mathrm{EMA}} = 0.99$)
+    & §\ref{sec:stage2} \\
+  \hline
+\end{tabular}
+\end{center}
+
+%% ─── FedSCRT Theoretical Framework ────────────────────────
+\section*{FedSCRT Theoretical Framework}
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{2.8cm} p{9.5cm} p{1.6cm}}
+  \hline
+  \textbf{Symbol} & \textbf{Definition} & \textbf{Section} \\
+  \hline
+  $\mathcal{P}_k(c)$
+    & Class prior at client $k$: probability that a
+      randomly drawn sample from $\mathcal{D}_k$ belongs
+      to class $c$. Varies across clients under non-IID.
+    & §\ref{thm:fedscrt} \\
+  $\mathcal{P}_k(x \mid c)$
+    & Class-conditional feature distribution at client $k$:
+      distribution of input features given class label $c$.
+      Assumed approximately equal across clients (covariate
+      shift assumption).
+    & §\ref{thm:fedscrt} \\
+  $\mathcal{P}(x \mid c)$
+    & Global class-conditional feature distribution
+    & §\ref{thm:fedscrt} \\
+  $\mathcal{L}_{\mathrm{bal}}(\mathbf{w})$
+    & Global balanced classification objective:
+      equal weight per class
+    & §\ref{eq:balanced-objective} \\
+  $\mathcal{L}_k(\mathbf{w})$
+    & Local imbalanced objective at client $k$:
+      weighted by local class prior $\mathcal{P}_k(c)$
+    & §\ref{eq:local-objective} \\
+  $\mathcal{L}_k^{\mathrm{bal}}(\mathbf{w})$
+    & Local objective under class-balanced sampling
+      at client $k$: equal weight per class regardless
+      of $\mathcal{P}_k(c)$
+    & §\ref{eq:fedscrt-unbiased} \\
+  $m$
+    & Number of samples drawn per class per client
+      during balanced sampling
+    & §\ref{eq:per-class-grad} \\
+  $\mathbf{w}_k^{\mathrm{cRT}}$
+    & Local cRT head parameters at client $k$ after
+      $T$ balanced training epochs
+    & §\ref{cor:fedscrt-agg} \\
+  $\mathbf{w}_{\mathrm{global}}$
+    & Aggregated FedSCRT global head
+    & §\ref{cor:fedscrt-agg} \\
+  \hline
+\end{tabular}
+\end{center}
+
+%% ─── Evaluation Metrics ────────────────────────────────────
+\section*{Evaluation Metrics}
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{2.8cm} p{9.5cm} p{1.6cm}}
+  \hline
+  \textbf{Symbol} & \textbf{Definition} & \textbf{Section} \\
+  \hline
+  $F1_{\mathrm{macro}}$
+    & Macro-averaged F1-score: unweighted mean of
+      per-class F1 scores
+    & §\ref{eq:macro-f1} \\
+  $P_c$, $R_c$
+    & Precision and recall for class $c$
+    & §\ref{eq:macro-f1} \\
+  AUC-ROC
+    & Area under the receiver operating characteristic
+      curve; AUC $= 0.5$ indicates random discrimination
+    & §\ref{sec:secondary-metrics} \\
+  $\Delta_{\mathrm{FL}}$
+    & Federated performance gap:
+      $\Delta_{\mathrm{FL}} = F1_{\mathrm{central}}
+      - F1_{\mathrm{federated}}$
+    & §\ref{sec:fed-vs-central} \\
+  \hline
+\end{tabular}
+\end{center}
