@@ -809,6 +809,13 @@ per-step compute from epoch 55 to the end of Stage~2.
 Mixed-precision automatic casting (AMP) is disabled during
 the ASAM phase to prevent numerical instability in the
 perturbation computation.
+Training was conducted in full single-precision floating
+point (FP32). Enabling automatic mixed
+precision~\cite{micikevicius2018mixed} would reduce
+per-experiment wall-clock time by approximately
+30--40\,\% on Turing-class GPUs, and is recommended for
+future experimental campaigns involving larger cohorts or
+more communication rounds.
 
 \paragraph{SWA.}
 Stochastic Weight Averaging (SWA) \cite{izmailov2018swa}
@@ -1264,6 +1271,203 @@ This stage addresses the head miscalibration that
 persists after SCAFFOLD convergence, extending the
 Classifier Retraining technique of
 \cite{cao2019ldam} to the federated setting.
+
+% ─── FedSCRT Algorithm Description ───────────────────────
+
+\subsubsection*{FedSCRT: Formal Description}
+
+Algorithm~\ref{alg:fedscrt} presents the complete
+FedSCRT procedure.
+The algorithm operates in two sequential phases.
+Phase~1 runs standard SCAFFOLD aggregation for $R$
+communication rounds to produce a globally consistent
+backbone $\Psi^*_\theta$.
+Phase~2 decouples classifier calibration from backbone
+learning: each hospital independently retrains a fresh
+classification head on its local data using class-balanced
+sampling, and the server aggregates the resulting heads
+via weighted averaging.
+
+\begin{algorithm}[htbp]
+\caption{FedSCRT: Federated Staged Classifier Retraining}
+\label{alg:fedscrt}
+\begin{algorithmic}[1]
+\Require $K$ clients with local datasets $\{\mathcal{D}_k\}_{k=1}^K$,
+         $R$ communication rounds,
+         $E$ local epochs per round,
+         $T$ cRT epochs per seed,
+         $J$ independent seeds,
+         samples per class $m$,
+         validation sets $\{\mathcal{V}_k\}_{k=1}^K$
+\Ensure  Global model $(\Psi^*_\theta,\, \mathbf{w}^*)$
+
+\Statex
+\Statex \textbf{Phase 1 — SCAFFOLD Backbone Training}
+\Statex \hrulefill
+
+\State Initialise $\mathbf{W}^{(0)}$,\;
+       $\mathbf{c} \leftarrow \mathbf{0}$,\;
+       $\mathbf{c}_k \leftarrow \mathbf{0}\ \forall k$
+
+\For{$t = 0,\, 1,\, \ldots,\, R-1$}
+  \State Server broadcasts $(\mathbf{W}^{(t)},\, \mathbf{c})$
+         to all $K$ clients
+
+  \For{each client $k \in \{1,\ldots,K\}$
+       \textbf{in parallel}}
+    \State $\mathbf{w}_k \leftarrow \mathbf{W}^{(t)}$
+    \For{$e = 1$ \textbf{to} $E$}
+      \State Sample mini-batch
+             $\mathcal{B}_k \sim \mathcal{D}_k$
+      \State $\mathbf{w}_k \leftarrow \mathbf{w}_k
+             - \eta\!\left(
+               \nabla F_k(\mathbf{w}_k;\,\mathcal{B}_k)
+               - \mathbf{c}_k + \mathbf{c}
+             \right)$
+             \Comment{drift-corrected local step}
+    \EndFor
+    \State $\Delta\mathbf{c}_k \leftarrow
+           \dfrac{1}{E\eta}
+           \!\left(\mathbf{W}^{(t)} - \mathbf{w}_k\right)
+           - \mathbf{c}$
+           \Comment{variate correction (eq.~\ref{eq:scaffold-variate})}
+    \State Upload $\bigl(\mathbf{w}_k,\;
+           \Delta\mathbf{c}_k\bigr)$ to server
+  \EndFor
+
+  \State $\mathbf{W}^{(t+1)} \leftarrow
+         \displaystyle\sum_{k=1}^K
+         \frac{n_k}{n}\,\mathbf{w}_k$
+         \Comment{weighted model aggregation}
+  \State $\mathbf{c} \leftarrow
+         \mathbf{c} +
+         \dfrac{1}{K}
+         \displaystyle\sum_{k=1}^K
+         \Delta\mathbf{c}_k$
+         \Comment{global variate update}
+\EndFor
+
+\State $\Psi^*_\theta \leftarrow
+       \operatorname{backbone}\!\left(\mathbf{W}^{(R)}\right)$
+       \Comment{freeze; discard head weights}
+
+\Statex
+\Statex \textbf{Phase 2 — Federated Classifier Retraining}
+\Statex \hrulefill
+
+\For{each client $k \in \{1,\ldots,K\}$
+     \textbf{in parallel}}
+
+  \State $\mathbf{z}_i \leftarrow \Psi^*_\theta(x_i)\;
+         \forall x_i \in \mathcal{D}_k$
+         \Comment{cache embeddings, no gradient}
+
+  \For{$j = 1$ \textbf{to} $J$}
+    \State Initialise fresh head $\mathbf{w}_{k,j}$
+    \For{$\tau = 1$ \textbf{to} $T$}
+      \State $\mathcal{B}_k^{\mathrm{bal}} \leftarrow$
+             draw $m$ samples per class from $\mathcal{D}_k$
+             \Comment{Theorem~\ref{thm:fedscrt}}
+      \State $\mathbf{w}_{k,j} \leftarrow
+             \mathbf{w}_{k,j}
+             - \eta_h\,
+             \nabla_{\!\mathbf{w}}\,
+             \mathcal{L}_k^{\mathrm{bal}}
+             \!\left(\mathbf{w}_{k,j};\;
+             \mathcal{B}_k^{\mathrm{bal}},\;
+             \Psi^*_\theta\right)$
+             \Comment{balanced head update}
+    \EndFor
+    \State $\mathrm{F1}_{k,j} \leftarrow
+           \mathrm{MacroF1}
+           \!\left(\mathbf{w}_{k,j},\,\mathcal{V}_k\right)$
+  \EndFor
+
+  \State $\mathbf{w}_k^* \leftarrow
+         \mathbf{w}_{k,\,\arg\max_{j}\,\mathrm{F1}_{k,j}}$
+         \Comment{best seed by val macro F1}
+  \State Upload $\mathbf{w}_k^*$ to server
+\EndFor
+
+\State $\mathbf{w}^* \leftarrow
+       \displaystyle\sum_{k=1}^K
+       \frac{n_k}{n}\,\mathbf{w}_k^*$
+       \Comment{Corollary~\ref{cor:fedscrt-agg}}
+
+\State \Return $\bigl(\Psi^*_\theta,\; \mathbf{w}^*\bigr)$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Phase 1 — SCAFFOLD Backbone Training (lines 1--15).}
+The first phase is standard SCAFFOLD
+\cite{karimireddy2020scaffold}.
+Each client performs $E$ drift-corrected local gradient
+steps per round, subtracting the client control variate
+$\mathbf{c}_k$ and adding the server variate $\mathbf{c}$
+to eliminate gradient bias.
+After $R = 20$ rounds, the global model
+$\mathbf{W}^{(R)}$ contains a backbone
+$\Psi^*_\theta$ that has learned discriminative
+representations from all three hospital distributions
+simultaneously.
+The backbone is then frozen: no further gradient updates
+are applied to $\Psi^*_\theta$ in Phase~2.
+This freezing is the architectural decision that makes
+Theorem~\ref{thm:fedscrt} applicable: the balanced head
+gradient is unbiased only when the backbone is fixed,
+because a trainable backbone would re-introduce the
+imbalanced class-prior into the representation space.
+
+\paragraph{Phase 2 — Federated Classifier Retraining
+(lines 16--27).}
+Each client independently retrains the classification
+head from scratch using class-balanced sampling on
+its cached backbone embeddings.
+The class-balanced sampler draws exactly $m$ samples
+per class per mini-batch, regardless of the local
+class distribution $\mathcal{P}_k(c)$.
+By Theorem~\ref{thm:fedscrt}, this renders the local
+head gradient an unbiased estimator of the global
+balanced objective $\mathcal{L}_{\mathrm{bal}}$,
+eliminating the influence of the local class prior.
+Ten independent seeds are trained and the best by
+validation macro F1 is selected, providing robustness
+to random initialisation.
+
+The server aggregates the three local heads by
+weighted average (line~26), producing a global head
+$\mathbf{w}^*$ that benefits from the combined
+balanced gradient signal across all hospitals.
+By Corollary~\ref{cor:fedscrt-agg}, this aggregated
+head converges to the minimiser of
+$\mathcal{L}_{\mathrm{bal}}$ as $T \to \infty$,
+independently of how extreme the non-IID partition
+is or how severe the local class imbalance.
+
+\paragraph{Computational cost.}
+Phase~1 requires $R \times K \times E$ client-epochs
+of full-model gradient computation.
+Phase~2 requires $K \times J \times T$ head-training
+epochs on \emph{cached} embeddings: since $\Psi^*_\theta$
+is frozen, each client performs a single forward pass
+through the backbone ($K$ passes total) and all subsequent
+training operates on pre-computed feature vectors.
+The head contains $d \times C$ parameters, where
+$d = 256$ (projected MIL dimension) and $C \in \{2, 4\}$,
+making Phase~2 computationally negligible relative
+to Phase~1.
+The Phase~2 communication payload per client is exactly
+$d \times C$ scalar values --- three to four orders of
+magnitude smaller than the backbone parameter count
+transmitted in each SCAFFOLD round.
+
+\paragraph{Privacy.}
+FedSCRT transmits only model parameters at every stage.
+Raw imaging data, patient identifiers, and label
+distributions never leave the client institution,
+consistent with the data sovereignty requirements
+of Algerian Law~18-07 and the federated privacy model
+established in Chapter~2.
 
 \textbf{Runs~5--6 --- FedAvg and SCAFFOLD, $\alpha=100$}:
 Near-IID comparison partitions in which all three
