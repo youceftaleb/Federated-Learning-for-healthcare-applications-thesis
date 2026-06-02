@@ -11,75 +11,34 @@
 \label{sec:ch3-intro}
 % ============================================================
 
-Chapter~2 established federated learning as the chosen
-training paradigm and surveyed the algorithmic landscape
-of aggregation strategies, privacy mechanisms, and
-convergence challenges.
-The decision to use federated learning is therefore
-closed; this chapter addresses the next question: given
-that training is federated, what specific technical
-obstacles arise on this dataset and how is each one
-overcome?
+Chapter~2 established federated learning as the training paradigm and identified
+the principal convergence challenges.
+This chapter addresses the concrete technical obstacles that arise on the breast
+DCE-MRI dataset and how each is overcome.
 
-Three concrete optimisation problems structure the
-methodology developed in this chapter.
+\textbf{Problem~1 --- Class imbalance.}
+The dataset contains a 10.4:1 ratio between Luminal~A (481 patients) and
+HER2-enriched (46 patients); under the federated non-IID split, minority class
+counts can drop to single digits per client.
+Section~\ref{sec:training-strategy} describes the three countermeasures:
+LDAM loss, weighted random sampling, and classifier retraining (cRT).
 
-\textbf{Problem~1 --- Class imbalance within each client.}
-The dataset contains a 10.4:1 ratio between the majority
-subtype (Luminal~A, 481 patients) and the minority subtype
-(HER2-enriched, 46 patients).
-Under standard cross-entropy training, the model collapses
-toward the majority class regardless of whether training
-is centralised or federated.
-The federated setting makes this worse: each hospital holds
-a non-IID partition where minority class counts can drop
-to single digits per client.
-Sections~\ref{sec:training-strategy} and
-\ref{sec:fl-setup} describe the three mechanisms used to
-counteract this: Label-Distribution-Aware Margin loss,
-Weighted Random Sampling, and Classifier Retraining.
+\textbf{Problem~2 --- Client drift.}
+Hospital~1 (general screening) is strongly Luminal dominant; Hospital~3
+(hereditary cancer clinic) is Non-Luminal dominant.
+Under FedAvg, divergent local optima cause client drift that degrades the global
+model; Section~\ref{sec:fl-setup} describes SCAFFOLD's control-variate correction
+and the FedSCRT stage that resolves the resulting head miscalibration.
 
-\textbf{Problem~2 --- Client drift from non-IID data.}
-The three simulated hospital clients hold fundamentally
-different patient populations.
-Hospital~2, representing a specialised hereditary cancer
-clinic, is Non-Luminal dominant (0.6:1 ratio), while
-Hospital~1 represents a general screening centre that is
-strongly Luminal dominant (22.5:1 ratio).
-Under FedAvg, local models trained on these divergent
-distributions drift toward incompatible local optima,
-and their weighted average is a poor approximation of
-the global solution.
-Section~\ref{sec:fl-setup} describes the SCAFFOLD
-aggregation strategy that eliminates this drift exactly
-using control variates, and quantifies the residual
-performance gap that SCAFFOLD leaves when combined with
-the class-imbalance correction of Problem~1.
+\textbf{Problem~3 --- VRAM budget.}
+Each client trains on a GTX~1660~Ti (6~GB VRAM); native-resolution volumetric
+processing exceeds this by an order of magnitude.
+Section~\ref{sec:model-arch} describes ConvNeXt-Nano, the 2.5D slice strategy,
+and gradient checkpointing that make training feasible.
 
-\textbf{Problem~3 --- Computational constraints on local training.}
-Each hospital client trains on a single GPU with 6~GB
-of VRAM.
-Volumetric DCE-MRI processing at native resolution
-exceeds this budget by an order of magnitude.
-Section~\ref{sec:model-arch} describes the three
-architectural decisions that make full-model training
-feasible within this constraint: the ConvNeXt-Nano
-backbone selected for its accuracy-per-parameter
-efficiency, the 2.5D slice-based input strategy, and
-gradient checkpointing.
-
-The remainder of this chapter translates these three
-optimisation problems into a concrete system.
-Section~\ref{sec:system-arch} describes the overall
-federated architecture.
-Sections~\ref{sec:dataset} through
-\ref{sec:training-strategy} detail the dataset,
-preprocessing pipeline, model, and training strategy
-for Problem~1.
-Section~\ref{sec:fl-setup} addresses Problems~2 and~3
-in the federated experimental configuration.
-Section~\ref{sec:eval-protocol} defines the evaluation
-protocol common to both experiments.
+Sections~\ref{sec:dataset}--\ref{sec:training-strategy} detail the dataset,
+preprocessing, model, and training strategy; Section~\ref{sec:fl-setup} covers
+the federated configuration; Section~\ref{sec:eval-protocol} defines evaluation.
 
 
 % ============================================================
@@ -130,26 +89,16 @@ patient identifiers, or label information.
 \label{sec:fed-topology}
 % ------------------------------------------------------------
 
-The federated scenario is simulated on a single workstation
-equipped with an NVIDIA GeForce GTX 1660 Ti GPU (6 GB VRAM).
-Clients are implemented as sequential processes rather than
-concurrent network nodes; this is standard practice in FL
-research where the goal is to study algorithmic behaviour
-rather than network infrastructure \cite{beutel2022flower}.
-The Flower simulation mode handles client selection, parameter
-serialisation, and aggregation transparently, allowing the
-experimental results to reflect the algorithmic properties of
-FedAvg and its variants under non-IID conditions without
-confounding from network latency or hardware heterogeneity.
-
-The use of three clients was motivated by two considerations.
-First, the dataset size of 737 patients is insufficient to
-support a larger number of clients without reducing per-client
-data to quantities too small for stable training.
-Second, three institutions represent a realistic small clinical
-consortium, comparable to the multi-site configurations studied
-in the FL healthcare literature
+The federated scenario is simulated on a single workstation (GTX~1660~Ti, 6~GB
+VRAM); clients execute as sequential processes rather than concurrent network
+nodes, which is standard practice in algorithmic FL research
+\cite{beutel2022flower}.
+Three clients were chosen because the 737-patient cohort cannot support larger
+client counts without reducing per-client data below the threshold for stable
+training, and three institutions represent a realistic small clinical consortium
 \cite{sheller2020federated,rieke2020future}.
+Implementation details of the simulation are given in
+Section~\ref{sec:client-simulation}.
 
 
 % ============================================================
@@ -163,38 +112,23 @@ in the FL healthcare literature
 \label{sec:dataset-description}
 % ------------------------------------------------------------
 
-The dataset used in this thesis is the Breast MRI Molecular
-Cancer Subtype collection published on Zenodo by Alves and
-Boulogne \cite{alves2023breastmri} as part of the AUC23
-Automated Universal Classification Challenge.
-The imaging data originate from Duke University Medical Centre
-and were originally introduced by Saha~et~al.\ \cite{saha2018},
-who assembled a retrospective cohort of biopsy-confirmed breast
-cancer patients studied between 2000 and 2014.
+The legal and ethical motivations for federated breast MRI classification are
+established in Chapter~1 (Section~\ref{sec:healthcare-data}) and Chapter~2
+(Section~\ref{sec:privacy-overview}).
 
-The modality is three-dimensional Dynamic Contrast-Enhanced MRI
-(DCE-MRI) acquired with a T1-weighted fat-saturated sequence.
-Each volume is a single-time-point subtraction image representing
-the difference between a post-contrast and a pre-contrast
-acquisition, thereby emphasising the regions of pathological
-contrast enhancement associated with malignant tissue.
-Volumes are stored in MetaImage format (\texttt{.mha}) with
-filenames following the nnU-Net convention
-\texttt{Breast\_MRI\_XXXX\_0000.mha}.
-The collection contains 737 biopsy-confirmed patients.
-Volume dimensions are not uniform across patients and
-approximate 448$\times$448$\times$160 voxels at an isotropic
-in-plane spacing of approximately 0.8$\times$0.8 mm and a
-slice thickness of approximately 1.1 mm.
-No tumour segmentation masks are included in the release;
-all experiments in this thesis therefore operate on the full
-breast volume rather than a tumour region of interest.
-
-Each patient is assigned one of four molecular subtypes
-determined from immunohistochemical assays of biopsy specimens.
-The subtype characterises the receptor expression profile of
-the tumour and is the primary determinant of systemic treatment
-strategy in clinical breast oncology.
+The dataset is the Breast MRI Molecular Cancer Subtype collection published on
+Zenodo by Alves and Boulogne \cite{alves2023breastmri} (AUC23 Challenge),
+originating from Duke University Medical Centre (Saha~et~al.\ \cite{saha2018},
+retrospective, 2000--2014).
+The modality is three-dimensional DCE-MRI (T1-weighted, fat-saturated subtraction
+images) stored as MetaImage (\texttt{.mha}) volumes approximating
+$448 \times 448 \times 160$ voxels.
+The collection contains 737 biopsy-confirmed patients assigned one of four
+molecular subtypes (Luminal~A, Luminal~B, HER2-enriched, Triple-Negative)
+determined from immunohistochemical assays; subtype determines systemic treatment
+strategy in breast oncology.
+No tumour segmentation masks are included; all experiments operate on the full
+breast volume.
 
 
 % ------------------------------------------------------------
