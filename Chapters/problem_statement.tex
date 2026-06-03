@@ -9,13 +9,10 @@
 The clinical deployment of deep learning systems for medical image analysis is
 fundamentally constrained by the fragmentation of patient data across healthcare
 institutions.
-Regulatory frameworks governing the processing of health records --- most notably
-the General Data Protection Regulation in the European Union
-\cite{gdpr2016regulation} and the Health Insurance Portability and Accountability
-Act in the United States \cite{hipaa1996health} --- impose strict conditions on any
-cross-institutional transfer of protected health information, conditions that a
-conventional centralised training pipeline cannot satisfy without substantial legal
-and administrative overhead.
+The fragmentation of patient data across institutional silos imposes strict
+conditions on any cross-institutional transfer of protected health information,
+conditions that a conventional centralised training pipeline cannot satisfy
+without substantial overhead.
 As a consequence, the large, diverse, and representative datasets that deep
 learning models require for reliable generalisation are, in practice, inaccessible
 through centralisation: each institution's imaging archive constitutes an isolated
@@ -25,8 +22,8 @@ neighbouring sites.
 Breast cancer molecular subtype classification from dynamic contrast-enhanced MRI
 exemplifies this tension.
 Accurately distinguishing Luminal~A, Luminal~B, HER2-enriched, and Triple-Negative
-subtypes from volumetric DCE-MRI data is clinically consequential --- subtype
-assignment directly determines therapeutic strategy --- yet the inter-institutional
+subtypes from volumetric DCE-MRI data is clinically consequential: subtype
+assignment directly determines therapeutic strategy, yet the inter-institutional
 variability in scanner hardware, acquisition protocol, patient demographics, and
 subtype prevalence means that models trained at a single site are unlikely to
 generalise to other clinical environments \cite{ghosh2020clustered}.
@@ -103,9 +100,9 @@ imaging literature:
 
 \begin{enumerate}
 
-  \item[\textbf{C1.}] A three-stage centralised training pipeline --- combining
+  \item[\textbf{C1.}] A three-stage centralised training pipeline combining
   Label-Distribution-Aware Margin loss, Sharpness-Aware Minimisation, Stochastic
-  Weight Averaging, and classifier re-training (LDAM + ASAM + SWA + cRT) --- for
+  Weight Averaging, and classifier re-training (LDAM + ASAM + SWA + cRT), designed for
   breast DCE-MRI molecular subtype classification under severe class imbalance,
   evaluated over five-fold cross-validation with patient-level stratification.
 

@@ -12,10 +12,9 @@
 
 This thesis addressed the problem of optimising federated
 learning for privacy-constrained healthcare applications,
-validated on breast DCE-MRI molecular subtype classification
---- a domain where legal constraints under Law~18-07 of June
-10, 2018 and international data protection frameworks
-prohibit direct patient data sharing across institutions,
+validated on breast DCE-MRI molecular subtype classification,
+a domain where patient data are distributed across
+institutional silos that prohibit direct data sharing,
 and where the rarest subtype (HER2-enriched, 6.2\% of cases)
 represents only 46 patients in the available dataset.
 Two complementary research threads were pursued: a
@@ -80,7 +79,7 @@ SCAFFOLD demonstrated an important decoupling.
 Its control-variate correction successfully prevented
 client drift at the representation learning level ---
 reaching AUC = 0.601 by round~2, whereas FedAvg required
-19 rounds to reach a comparable AUC --- but overcorrected
+19 rounds to reach a comparable AUC, but overcorrected
 the decision boundary to Non-Luminal prediction (F1 = 0.200)
 under the extreme imbalance gradient asymmetry.
 The theoretical convergence guarantees of SCAFFOLD assume
@@ -158,9 +157,9 @@ The FedSCRT result reported in this thesis uses a
 centralised SCAFFOLD backbone (all clients share the
 full training set for backbone convergence) with federated
 cRT heads.
-Running FedSCRT on a truly federated SCAFFOLD backbone ---
+Running FedSCRT on a truly federated SCAFFOLD backbone,
 where each client sees only its local partition during
-all stages --- would provide a stricter privacy evaluation
+all stages, would provide a stricter privacy evaluation
 and is the natural next experiment.
 
 \textbf{Convergence-aware aggregation for joint non-IID
@@ -169,8 +168,8 @@ SCAFFOLD's failure mode under extreme non-IID and
 severe imbalance motivates the design of an algorithm
 that corrects client drift while accounting for
 class-conditional gradient variance.
-Class-conditional control variates --- one per class per
-client rather than one per client --- represent one
+Class-conditional control variates (one per class per
+client rather than one per client) represent one
 candidate approach that would directly address the
 compound heterogeneity observed in this study.
 
@@ -180,7 +179,7 @@ without formal privacy guarantees beyond data locality.
 Integrating DP-SGD \cite{abadi2016deep} with calibrated
 noise to the FedSCRT pipeline would enable a rigorous
 privacy-utility trade-off analysis, which is required
-for clinical deployment under Law~18-07.
+for future clinical deployment.
 
 \textbf{Multi-sequence and multi-modality extension.}
 The current pipeline uses T1-subtraction DCE-MRI at a

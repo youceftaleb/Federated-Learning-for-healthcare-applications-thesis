@@ -156,8 +156,8 @@ non-IID partitions in centralised simulation
 FedProx under simulated system heterogeneity on a single
 machine \cite{li2020fedprox}.
 Single-machine simulation isolates algorithmic convergence
-behaviour from network engineering variables --- latency,
-bandwidth, dropout --- which are orthogonal to the research
+behaviour from network engineering variables (latency,
+bandwidth, dropout), which are orthogonal to the research
 questions addressed here \cite{beutel2022flower}.
 Sequential execution introduces no algorithmic difference
 relative to true parallel deployment: each client receives
@@ -436,8 +436,8 @@ respectively.
 Their combined parameter updates overwhelm Hospital~1's
 Non-Luminal signal (57 of 80 patients Non-Luminal), pulling
 the global model toward a majority-class decision boundary.
-The AUC-ROC of 0.5654 --- marginally above random chance
---- confirms that the backbone acquires minimal discriminative
+The AUC-ROC of 0.5654, marginally above random chance,
+confirms that the backbone acquires minimal discriminative
 representation under this configuration.
 
 This result demonstrates that standard weighted aggregation
@@ -458,8 +458,8 @@ lowest final AUC.
 The round-by-round trajectory reveals a characteristic
 oscillation pattern.
 The model reaches AUC-ROC = 0.645 at communication
-round~6 --- surpassing both FedAvg (peak 0.602 at
-round~19) and SCAFFOLD (peak 0.601 at round~2) ---
+round~6, surpassing both FedAvg (peak 0.602 at
+round~19) and SCAFFOLD (peak 0.601 at round~2),
 before degrading to AUC = 0.473 at round~7.
 A second partial recovery to AUC = 0.630 appears at
 round~18, followed by a terminal collapse to
@@ -656,8 +656,8 @@ backbone assigns higher Non-Luminal probability to
 Luminal patients, and vice versa.
 This inversion confirms that SCAFFOLD's instability
 under class imbalance is not a consequence of
-statistical heterogeneity --- it persists even when
-$\alpha=100$ eliminates the non-IID component ---
+statistical heterogeneity (it persists even when
+$\alpha=100$ eliminates the non-IID component)
 but of the class imbalance gradient asymmetry itself.
 The control-variate correction amplifies the minority-class
 gradient signal even under near-IID conditions,
@@ -822,8 +822,8 @@ problems.
     $E=2$ local epochs).
     FedAvg converges to trivial majority-class prediction
     (flat F1 = 0.429).
-    SCAFFOLD reaches AUC = 0.601 by round~2 --- 17 rounds
-    faster than FedAvg --- confirming that control-variate
+    SCAFFOLD reaches AUC = 0.601 by round~2, 17 rounds
+    faster than FedAvg, confirming that control-variate
     correction prevents client drift at the representation
     level, while the F1 collapse to 0.200 reveals decision
     boundary miscalibration under extreme imbalance asymmetry.
@@ -1027,9 +1027,9 @@ pattern.
 Post-hoc calibration correction via temperature scaling
 would be expected to improve both the reliability diagram
 and the Brier score without affecting the AUC or macro F1.
-Temperature scaling in the federated setting --- where
+Temperature scaling in the federated setting, where
 a calibration temperature must be estimated without a
-shared held-out set --- is identified as a direction for
+shared held-out set, is identified as a direction for
 future work.
 
 \subsection{Radiomics Fusion}
@@ -1067,9 +1067,9 @@ The attention scores $\hat{a}_k$ learn to weight axial
 slices by their discriminative content, implicitly
 identifying the enhancing tumour region without requiring
 an explicit mask.
-The 59 whole-breast radiomic features --- first-order
+The 59 whole-breast radiomic features (first-order
 statistics, GLCM texture, and shape descriptors computed
-on a foreground intensity mask --- capture global
+on a foreground intensity mask) capture global
 parenchymal characteristics that the backbone has already
 encoded more richly through end-to-end learning.
 Adding 59 weakly discriminative global features to 256
@@ -1189,8 +1189,8 @@ FedAvg collapses to trivial majority-class prediction
 (F1 = 0.429, AUC = 0.565), confirming that unweighted
 gradient aggregation fails under dominant-class asymmetry.
 SCAFFOLD acquires discriminative representations faster
-than FedAvg --- reaching AUC = 0.601 by round~2 versus
-FedAvg's round~19 --- but overcorrects the decision
+than FedAvg, reaching AUC = 0.601 by round~2 versus
+FedAvg's round~19, but overcorrects the decision
 boundary due to the extreme imbalance gradient asymmetry
 (F1 = 0.200).
 FedSCRT resolves the head miscalibration by decoupling

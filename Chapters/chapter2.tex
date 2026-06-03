@@ -14,25 +14,9 @@ institutional, legal, and geographical boundaries.
 Chapter~1 established that these institutions operate as data silos:
 each custodian holds locally valuable patient data that it cannot, in
 practice, freely share with external parties.
-The regulatory frameworks that govern this reality -- the General Data
-Protection Regulation (GDPR) in the European Union, the Health
-Insurance Portability and Accountability Act (HIPAA) in the United
-States, and, in the Algerian context directly applicable to this work,
-Law~18-07 of June~10,~2018 relative to the protection of
-natural persons in the processing of personal data, which
-establishes equivalent protections under the supervision
-of the Autorité Nationale de Protection des Données à
-Caractère Personnel (ANPDP)\footnote{Journal Officiel de la République
-Algérienne, No.~34, June~10,~2018. Law 18-07 relative to the protection
-of natural persons in the processing of personal data.} -- impose strict
-conditions on any cross-institutional transfer of patient data, conditions
-that a conventional centralised machine learning pipeline cannot satisfy
-without substantial legal and technical overhead
-\cite{gdpr2016regulation,hipaa1996health}.
-In Algeria, the same obligations apply under
-Law~18-07, which governs any processing of health data
-by Algerian institutions regardless of whether the data
-are transferred abroad.
+Data sovereignty constraints impose strict conditions on any cross-institutional
+transfer of patient data, conditions that a conventional centralised machine
+learning pipeline cannot satisfy without substantial technical overhead.
 
 Yet the imperative for collaborative learning in clinical AI is equally
 compelling.
@@ -100,10 +84,10 @@ by positioning the present contribution within the state of the art.
 
 The dominant centralised learning paradigm encounters four fundamental obstacles
 in clinical settings.
-\textit{Privacy and data sovereignty}: GDPR classifies health data as a special
-category requiring explicit legal basis; HIPAA mandates technical safeguards against
-unauthorised disclosure; ethics committees require case-by-case approval, making
-systematic centralisation infeasible \cite{gdpr2016regulation,hipaa1996health}.
+\textit{Privacy and data sovereignty}: health data belongs to a special protected
+category requiring explicit legal basis, technical safeguards against unauthorised
+disclosure, and case-by-case ethics committee approval, making systematic
+centralisation infeasible.
 \textit{Data ownership}: a hospital's radiological archive represents years of
 clinical investment; institutions may collaborate while refusing to surrender
 physical custody to a third-party aggregator \cite{rieke2020future}.
@@ -119,14 +103,14 @@ subtype distributions \cite{sheller2020federated,rieke2020future}.
     \centering
     \includegraphics[width=\textwidth]{figures/fig2_1_centralised_vs_federated.jpg}
     \caption{Centralised versus federated learning. Left: raw patient data must
-      be transferred to a central server \cite{gdpr2016regulation,hipaa1996health}.
+      be transferred to a central server, violating data locality requirements.
       Right: only model parameters are exchanged; data remain at each institution
       \cite{mcmahan2017communication}.}
     \label{fig:centralised-vs-fl}
 \end{figure}
 
 Federated learning addresses these obstacles by requiring each institution to
-transmit only model parameter updates --- never raw data --- to a central
+transmit only model parameter updates (never raw data) to a central
 coordination server \cite{mcmahan2017communication}.
 This thesis operates in the \emph{cross-silo, horizontal} quadrant: a small number
 of persistent institutional clients each holding a non-overlapping patient population
@@ -153,6 +137,20 @@ with the same feature space \cite{yang2019federated,kairouz2021advances}
     \hline
   \end{tabular}
 \end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\linewidth]{figures/yang2019_fig2.png}
+  \caption{Horizontal versus vertical federated learning.
+    In horizontal FL (top), clients share the same feature space but hold
+    disjoint patient populations; each institution contributes independent
+    samples of the same measurements.
+    In vertical FL (bottom), clients hold complementary feature sets for an
+    overlapping patient population.
+    This thesis operates in the horizontal, cross-silo quadrant.
+    Adapted from \cite{yang2019federated}.}
+  \label{fig:fl-horizontal-vertical}
+\end{figure}
 
 Formally, let $K$ denote the number of participating clients,
 $\mathcal{D}_k$ the private local dataset of client $k$,
@@ -231,8 +229,8 @@ analysis relative to cross-device settings \cite{kairouz2021advances}.
 Upon completing local training, each client transmits its updated parameter vector
 $\mathbf{w}_k^{(t+1)}$ to the server, which forms the sample-size-weighted average
 of equation~\eqref{eq:fedavg-aggregation}.
-When client distributions are non-IID --- as in multi-hospital breast MRI
-classification --- this averaging approximation degrades and the aggregated model
+When client distributions are non-IID, as in multi-hospital breast MRI
+classification, this averaging approximation degrades and the aggregated model
 may be suboptimal for all clients simultaneously, motivating the alternative
 strategies surveyed in Section~\ref{sec:aggregation}.
 
@@ -703,9 +701,6 @@ Additional formal guarantees can be obtained through Differential Privacy
 (DP-SGD, \cite{abadi2016deep}), Secure Aggregation \cite{bonawitz2017practical},
 and Homomorphic Encryption \cite{kaissis2020secure}, as illustrated in
 Figure~\ref{fig:kaissis-privacy}.
-In the Algerian context, Law~18-07 of June~10,~2018 establishes the regulatory
-framework governing health data processing; federated learning addresses the data
-localisation requirements of this framework by construction.
 The FedMRI application (Appendix~\ref{app:fedmri}) implements a four-layer privacy
 enforcement architecture.
 Formal cryptographic privacy mechanisms (DP, SecAgg) are not implemented in the

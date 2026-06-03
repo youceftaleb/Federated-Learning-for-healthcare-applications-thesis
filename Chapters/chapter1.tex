@@ -1,7 +1,7 @@
 \chapter{Chapter 1 -- Medical Context and AI Foundations for Healthcare Data Analysis}
 \section{Introduction}
 The deployment of artificial intelligence in healthcare does not begin with model
-architectures or optimisation algorithms --- it begins with a clear understanding of
+architectures or optimisation algorithms: it begins with a clear understanding of
 the environment in which those models must operate.
 Before a federated learning system can be designed, trained, or evaluated, three
 fundamental questions must be answered: \textit{where does the data come from and
@@ -24,8 +24,8 @@ these modalities and establishes the evaluation framework used throughout this w
 Healthcare data is one of the most valuable and sensitive types of information in
 modern society, containing detailed records about patients' physiological conditions,
 diagnoses, treatments, and outcomes \cite{olivia2026secure}.
-These data are generated across a wide range of institutions --- hospitals, specialised
-clinics, and research centres --- each maintaining its own information systems and
+These data are generated across a wide range of institutions (hospitals, specialised
+clinics, and research centres), each maintaining its own information systems and
 databases, resulting in fragmented storage and limited interoperability \cite{jensen2012mining}.
 
 \subsection{Healthcare Institutions and Data Silos}
@@ -52,24 +52,10 @@ the administrative complexity of establishing inter-institutional sharing agreem
 highly sensitive personal information whose breach can have severe consequences
 for patients \cite{olivia2026secure}.
 
-\subsection{Legal and Ethical Constraints (GDPR, HIPAA)}
-
-The \textit{General Data Protection Regulation (GDPR)} requires explicit patient
-consent, enforces data minimisation principles, and mandates anonymisation when
-data are used for research purposes \cite{EU2016GDPR}.
-The \textit{Health Insurance Portability and Accountability Act (HIPAA)} defines
-standards for safeguarding medical information and imposes strict penalties for
-data breaches \cite{hipaa1996}.
-In Algeria, Law~18-07 of June~10,~2018 establishes equivalent protections governing
-any processing of health data by Algerian institutions regardless of whether
-the data are transferred abroad.
-These regulations make the centralisation of multi-institutional patient data
-legally and operationally infeasible without substantial overhead.
-
 \subsection{Need for Collaborative Learning in Healthcare}
 
 Traditional centralised machine learning, which aggregates all data into a single
-repository, cannot satisfy these regulatory constraints.
+repository, cannot satisfy these constraints.
 Distributed learning paradigms such as \textbf{federated learning} have emerged
 as a principled alternative: multiple institutions collaborate to train models while
 keeping data locally stored, leveraging large-scale diverse datasets while preserving
@@ -114,7 +100,7 @@ stored in tabular formats essential for predictive modelling \cite{miotto2017dee
 Such data frequently contain missing values and biases that must be addressed during
 preprocessing.
 From a machine learning perspective, combining imaging and structured modalities
-can capture complementary information, but increases model complexity --- a challenge
+can capture complementary information, but increases model complexity, a challenge
 further amplified in distributed settings where data are spread across institutions
 \cite{ngiam2011multimodal}.
 
@@ -196,10 +182,10 @@ Despite its promise, deploying ML in healthcare presents several persistent chal
     decisions be explainable to clinicians, creating tension with the opacity of 
     complex models.
     
-    \item \textbf{Privacy and data governance}: Patient data is subject to strict 
-    regulatory frameworks (GDPR, HIPAA, Law~18-07), severely limiting the ability to centralize 
-    data across institutions for training which is a core motivation for federated 
-    learning \cite{EU2016GDPR}\cite{hipaa1996}.
+    \item \textbf{Privacy and data governance}: Patient data is subject to strict
+    data privacy regulations, severely limiting the ability to centralise
+    data across institutions for training, which is a core motivation for federated
+    learning.
 \end{itemize}
 
 % ============================================================
@@ -237,8 +223,8 @@ specialized architectures such as CNNs and RNNs.
 \end{figure}
 
 \paragraph{Activation Functions}
-Non-linear activation functions --- most notably ReLU for hidden layers and GELU
-for transformer-style blocks --- introduce non-linearity into neural networks,
+Non-linear activation functions (most notably ReLU for hidden layers and GELU
+for transformer-style blocks) introduce non-linearity into neural networks,
 enabling them to learn complex patterns. Without activation functions,
 a neural network would behave like a linear model regardless of its
 depth, limiting its ability to solve complex tasks.
@@ -375,14 +361,14 @@ examined in depth in the following chapter.
 \section{Conclusion}
 
 This chapter has established the three foundational pillars of this thesis.
-The healthcare data landscape is fragmented across institutional silos governed
-by GDPR, HIPAA, and Algerian Law~18-07, making the centralisation that conventional
-machine learning assumes legally and operationally infeasible.
+The healthcare data landscape is fragmented across isolated institutional silos
+whose incompatible systems and restricted access policies make the centralisation
+that conventional machine learning assumes operationally infeasible.
 Medical imaging through DCE-MRI encodes high-dimensional spatial information that
 CNNs can exploit for molecular cancer subtype classification.
 Deep learning provides the representational power required for these complex
 classification tasks, with macro F1 and AUC-ROC as the primary evaluation metrics.
 It is the reconciliation of model performance with privacy preservation, data
 heterogeneity with collaborative learning, and institutional autonomy with
-generalisation that federated learning proposes to achieve --- the subject of
+generalisation that federated learning proposes to achieve, the subject of
 Chapter~2.

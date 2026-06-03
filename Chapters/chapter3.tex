@@ -181,15 +181,6 @@ tends to produce models biased toward the majority class.
 \end{minipage}
 \end{table}
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.72\linewidth]{figures/ch3_class_distribution.pdf}
-  \caption{Class distribution of the 737-patient breast DCE-MRI
-    dataset. The Luminal~A class dominates the cohort with 481
-    samples (65.3\%), while HER2-enriched accounts for only 46
-    samples (6.2\%), yielding a 10.4:1 imbalance ratio.}
-  \label{fig:class-distribution}
-\end{figure}
 
 
 % ============================================================
@@ -444,16 +435,16 @@ evaluation.
       & \textbf{Decision} \\
     \midrule
     ResNet-50         & 25.6 & 76.1\% & $\sim$3.5 GB
-      & Rejected --- low accuracy \\
+      & Rejected: low accuracy \\
     EfficientNet-B3   & 12.2 & 82.1\% & $\sim$4.1 GB
-      & Rejected --- inferior pretrain \\
+      & Rejected: inferior pretrain \\
     \textbf{ConvNeXt-Nano} & \textbf{15.6} & \textbf{82.9\%}
       & $\sim$\textbf{4.8 GB}
       & \textbf{Selected} \\
     ViT-Small/16      & 22.1 & 81.4\% & $\sim$5.2 GB
-      & Rejected --- slow inference \\
+      & Rejected: slow inference \\
     DINOv2-Small      & 21.9 & 84.5\% & $>$6 GB
-      & Rejected --- exceeds budget \\
+      & Rejected: exceeds budget \\
     \bottomrule
   \end{tabular}}
 \end{table}
@@ -1391,7 +1382,7 @@ $d = 256$ (projected MIL dimension) and $C \in \{2, 4\}$,
 making Phase~2 computationally negligible relative
 to Phase~1.
 The Phase~2 communication payload per client is exactly
-$d \times C$ scalar values --- three to four orders of
+$d \times C$ scalar values, three to four orders of
 magnitude smaller than the backbone parameter count
 transmitted in each SCAFFOLD round.
 
@@ -1399,9 +1390,7 @@ transmitted in each SCAFFOLD round.
 FedSCRT transmits only model parameters at every stage.
 Raw imaging data, patient identifiers, and label
 distributions never leave the client institution,
-consistent with the data sovereignty requirements
-of Algerian Law~18-07 and the federated privacy model
-established in Chapter~2.
+consistent with the federated privacy model established in Chapter~2.
 
 \textbf{Runs~5--6 --- FedAvg and SCAFFOLD, $\alpha=100$}:
 Near-IID comparison partitions in which all three
@@ -1798,8 +1787,8 @@ Stage~3 cRT.
 The federated performance is measured by the global model's
 validation macro F1 evaluated at each communication round,
 averaged across the three client validation sets.
-The federated performance gap --- the difference between
-centralised and federated macro F1 --- is the primary
+The federated performance gap (the difference between
+centralised and federated macro F1) is the primary
 optimisation target of this work.
 Reducing this gap through the combined action of SCAFFOLD
 aggregation and federated classifier retraining is the
