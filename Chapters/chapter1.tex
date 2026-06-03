@@ -54,12 +54,16 @@ for patients \cite{olivia2026secure}.
 
 \subsection{Need for Collaborative Learning in Healthcare}
 
-Traditional centralised machine learning, which aggregates all data into a single
-repository, cannot satisfy these constraints.
-Distributed learning paradigms such as \textbf{federated learning} have emerged
-as a principled alternative: multiple institutions collaborate to train models while
-keeping data locally stored, leveraging large-scale diverse datasets while preserving
-patient privacy \cite{kairouz2021advances}.
+Centralised machine learning is therefore structurally incompatible with
+the institutional landscape of healthcare, where the very richness of
+data that would improve model generalisation is locked inside silos that
+cannot be pooled.
+Federated learning has been proposed as a resolution: institutions
+collectively improve a shared model by each training locally on their
+private data and contributing only parameter updates to the collaboration,
+so that the statistical power of large multi-site datasets becomes
+accessible without physically aggregating sensitive records
+\cite{kairouz2021advances,rieke2020future}.
 
 \section{Medical Data Modalities}
 \label{sec:medical-modalities}
@@ -117,10 +121,13 @@ performing tasks that ordinarily require human cognitive faculties
 capability from empirical data: a parameterised model is estimated by minimising a
 loss function over a labelled corpus, inducing a mapping from inputs to outputs
 expected to generalise to unseen observations.
-\textbf{Deep learning (DL)} extends ML through hierarchical neural network architectures
-that learn distributed representations from raw data at progressively increasing levels
-of abstraction, discovering task-relevant features automatically without
-hand-engineered extractors.
+\textbf{Deep learning (DL)} realises this capacity by stacking multiple
+layers of parametric transformations, each operating on the output of the
+preceding layer \cite{lecun2015deep}.
+This compositional structure allows the network to build increasingly
+abstract representations of the raw input automatically, eliminating the
+need for hand-designed feature extractors in favour of features learned
+end-to-end from data.
 
 In healthcare, AI has shown significant potential to transform disease
 diagnosis, prognosis, and patient management by

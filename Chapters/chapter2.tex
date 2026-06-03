@@ -30,16 +30,17 @@ Meaningful generalisation across clinical environments -- a prerequisite
 for safe deployment -- requires exposure to the diversity that is only
 available when multiple institutions contribute to the learning process.
 
-Federated learning (FL) resolves this tension by inverting the
-conventional data-movement assumption: instead of bringing patient data
-to the model, the model is brought to the data.
-Each participating institution trains a local copy of the model on its
-own private data and transmits only model parameters -- gradient updates
-or weight vectors -- to a central coordination server that aggregates them
-into an improved global model.
-Raw patient data never leave the custodian site, and the progressively
-aggregated model captures knowledge distributed across all participating
-institutions \cite{mcmahan2017communication,kairouz2021advances}.
+Federated learning (FL) addresses these obstacles through a fundamental
+reorientation of the training workflow: rather than centralising data,
+the learning process travels to each data custodian.
+Every participating institution independently optimises a local copy of
+the shared model on its private patient records, then communicates only
+the resulting parameter updates to a central server responsible for
+aggregation.
+At no stage do raw patient records cross institutional boundaries; the
+progressively refined global model accumulates knowledge from all sites
+without requiring physical data transfer
+\cite{mcmahan2017communication,kairouz2021advances}.
 
 This chapter provides a structured survey of federated learning as it
 applies to healthcare, with particular attention to the aspects
@@ -284,26 +285,31 @@ arithmetic mean:
 The principal hyperparameters controlling FedAvg are the fraction of
 clients selected per round $C \in (0, 1]$, the number of local epochs
 $E$, and the local mini-batch size $B$.
-McMahan~et~al.\ showed empirically that increasing $E$ and decreasing $B$
-reduces the number of communication rounds required to reach a target
-accuracy by one to two orders of magnitude compared to naive
-federated stochastic gradient descent, making computation more
-efficient relative to communication \cite{mcmahan2017communication}.
+McMahan~et~al.\ demonstrated through experiments on MNIST and a
+Shakespeare language modelling task that concentrating more computation
+locally — by increasing the number of local epochs per round or reducing
+the mini-batch size — can shrink the total number of communication rounds
+needed to reach a target accuracy by between one and two orders of
+magnitude relative to a single-step federated SGD baseline,
+establishing that the ratio of local computation to network communication
+is the primary lever for reducing the wall-clock cost of federated
+training \cite{mcmahan2017communication}.
 
-Despite its simplicity and strong performance under
-independent and identically distributed (IID) data, FedAvg exhibits
-a well-documented weakness when client data distributions are
-heterogeneous.
-When local objectives $F_k$ diverge substantially, as is the case in
-multi-hospital breast MRI classification where subtype prevalences
-differ across institutions, the local gradient directions point towards
-different local optima.
-Performing multiple local SGD steps before aggregation causes the
-local models to drift away from the global optimum, a phenomenon
-termed \emph{client drift} \cite{kairouz2021advances,arbaoui2025survey}.
-The weighted average of drifted models may not approximate the globally
-optimal parameters, resulting in degraded convergence and lower final
-accuracy under non-IID distributions.
+FedAvg's convergence properties deteriorate markedly when the data
+distributions across clients are statistically heterogeneous.
+Under non-IID conditions, each client's local risk function $F_k$ has a
+distinct minimiser; multiple rounds of local gradient descent therefore
+steer each client's model progressively further from the global solution
+in a client-specific direction.
+The aggregated model, formed by averaging these divergent local updates,
+is a poor approximation of the true global optimum — a systematic failure
+mode that Karimireddy~et~al.\ formalised as \emph{client drift} and
+proved constitutes an inherent limitation of FedAvg regardless of
+step-size or batch-size choices
+\cite{karimireddy2020scaffold,kairouz2021advances,arbaoui2025survey}.
+This degradation is directly observable in the breast MRI setting studied
+here, where subtype prevalences differ substantially across the three
+simulated hospital clients.
 The algorithms described in the following subsections were designed
 specifically to correct this shortcoming.
 
@@ -349,10 +355,12 @@ global model is updated by the weighted average of the locally trained
 parameter vectors.
 The benefit of FedProx lies entirely in the improved quality of the
 local updates delivered to the server.
-Li~et~al.\ proved that FedProx converges to a neighbourhood of the
-global optimum under general non-IID data distributions, providing
-the first theoretical convergence guarantee for federated optimisation
-in the heterogeneous setting \cite{li2020fedprox}.
+Li~et~al.\ provided a formal analysis showing that FedProx's proximal
+regularisation is sufficient to guarantee convergence even when client
+datasets are statistically heterogeneous, establishing that the iterates
+approach a bounded region around the global solution whose radius is
+controlled by the proximal coefficient and the degree of client
+heterogeneity \cite{li2020fedprox}.
 
 \begin{figure}[htbp]
   \centering
@@ -383,10 +391,14 @@ FedNova is excluded from the experimental comparison.
 \label{sec:scaffold}
 % ------------------------------------------------------------
 
-SCAFFOLD (Stochastic Controlled Averaging for Federated Learning)
-was introduced by Karimireddy~et~al.\ \cite{karimireddy2020scaffold}
-with the explicit goal of eliminating client drift through a
-\emph{variance reduction} mechanism.
+SCAFFOLD — Stochastic Controlled Averaging for Federated Learning —
+was proposed by Karimireddy~et~al.\ as a principled correction to
+the client drift problem \cite{karimireddy2020scaffold}.
+Its central innovation is to maintain gradient correction terms, known
+as \emph{control variates}, at both the server and each client,
+allowing every local update to track the global gradient direction
+rather than being pulled exclusively toward the client's own local
+objective.
 
 \begin{figure}[htbp]
   \centering
@@ -436,9 +448,11 @@ The server aggregates model updates and variate updates separately,
 updating the global model by the mean of client model submissions and
 the global variate by the mean of client variate corrections.
 
-Karimireddy~et~al.\ proved that SCAFFOLD converges at the same
-asymptotic rate as centralised SGD regardless of the degree of data
-heterogeneity, a stronger guarantee than either FedAvg or FedProx
+Karimireddy~et~al.\ established a formal convergence guarantee showing
+that SCAFFOLD's communication complexity matches that of centralised
+stochastic gradient descent up to constants, and that this rate holds
+independently of the gradient dissimilarity between clients — a property
+that neither FedAvg nor FedProx can achieve
 \cite{karimireddy2020scaffold}.
 The cost of this guarantee is additional communication per round:
 each client must transmit both its updated model and its updated
@@ -796,17 +810,20 @@ principal alternatives for context.
 \label{sec:pysyft}
 % ------------------------------------------------------------
 
-Flower is a flexible, framework-agnostic federated learning library that abstracts
-the federation logic from local training code through a clean client-server interface
+Flower is an open-source FL library built around the principle of framework
+and language agnosticism: the federation protocol is cleanly separated from
+the local training implementation, so that any PyTorch, TensorFlow, or JAX
+model can be federated with minimal code modification
 \cite{beutel2022flower}.
-Clients implement a \texttt{NumPyClient} interface defining local training,
-parameter serialisation, and evaluation; the server manages client selection,
-aggregation, and broadcasting.
-Flower supports any deep learning backend (PyTorch, TensorFlow, JAX) and provides
-a simulation mode that executes multi-client experiments on a single machine without
-network infrastructure.
-Flower is used throughout this thesis to orchestrate the three-hospital breast MRI
-federation.
+On the client side, users implement a standardised interface that
+encapsulates local training and evaluation; on the server side, a
+configurable strategy object governs round management, client sampling,
+and parameter aggregation.
+A built-in virtual client engine schedules client computations sequentially
+on a single workstation, enabling large-scale multi-client experiments
+without network infrastructure.
+Flower is used throughout this thesis to orchestrate the three-hospital
+breast MRI federation.
 
 % ------------------------------------------------------------
 \subsection{Comparative Overview}
@@ -871,15 +888,19 @@ FedML, Substra, and PySyft are listed for completeness.
   \label{fig:flower-architecture}
 \end{figure}
 
-Flower is selected for this thesis based on three criteria:
-its framework-agnostic design, which allows the PyTorch ConvNeXt-Nano
-backbone with Gated Attention MIL head developed for the breast MRI
-classification task to be wrapped with minimal modification;
-its native support for the FedAvg baseline and SCAFFOLD optimisation
-strategy evaluated in Chapter~4; and its
-simulation mode, which enables reproducible experiments on a
-single GPU machine without requiring a multi-machine cluster
-deployment \cite{beutel2022flower}.
+Flower was selected as the federation platform for three reasons arising
+from the specific constraints of this project.
+First, its decoupling of the FL communication protocol from the local
+training code means the PyTorch implementation of ConvNeXt-Nano and
+the Gated Attention MIL pipeline requires no structural changes to
+participate in federation.
+Second, Flower ships with a reference implementation of FedAvg and
+supports custom strategy definitions, allowing SCAFFOLD to be integrated
+at the server level without modifying client-side code.
+Third, the virtual client engine enables all three hospital clients to
+be simulated sequentially on a single GTX~1660~Ti without any network
+infrastructure, ensuring full experimental reproducibility
+\cite{beutel2022flower}.
 
 
 % ============================================================
@@ -890,15 +911,16 @@ deployment \cite{beutel2022flower}.
 \subsection{Federated Learning for Medical Image Analysis}
 \label{sec:related-medical-imaging}
 
-The application of federated learning to medical image analysis
-has expanded rapidly since Sheller~et~al.\ demonstrated that a
-federated brain tumour segmentation model trained across ten
-institutions, without sharing any patient data, reached performance
-within one percentage point of a centrally trained baseline
+The viability of federated learning for clinical imaging was established
+in an early multi-institutional study by Sheller~et~al., who showed
+that a brain tumour segmentation model jointly trained across ten
+hospitals under a strictly data-local protocol could match the accuracy
+of a model trained on the fully pooled dataset
 \cite{sheller2020federated}.
-This foundational result established the clinical credibility of FL
-as a collaborative learning paradigm and motivated a broad programme
-of follow-on work spanning radiology, pathology, and oncology.
+This result was significant because it demonstrated that the performance
+cost of preserving data locality was negligible in a real clinical
+imaging context, motivating subsequent investigations across a wider
+range of imaging modalities.
 Guan~et~al.\ conducted a systematic survey of FL methods applied to
 medical image analysis from 2017 to 2023, organising the field
 around three system perspectives: client-side methods addressing

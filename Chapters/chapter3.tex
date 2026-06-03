@@ -89,10 +89,13 @@ patient identifiers, or label information.
 \label{sec:fed-topology}
 % ------------------------------------------------------------
 
-The federated scenario is simulated on a single workstation (GTX~1660~Ti, 6~GB
-VRAM); clients execute as sequential processes rather than concurrent network
-nodes, which is standard practice in algorithmic FL research
-\cite{beutel2022flower}.
+The federated scenario is simulated on a single workstation (GTX~1660~Ti,
+6~GB VRAM) by running each client's training pipeline sequentially within
+Flower's virtual client engine, which instantiates each client process on
+demand and releases GPU memory between clients \cite{beutel2022flower}.
+This single-machine simulation approach is widely used in federated learning
+algorithm research because it allows reproducible algorithm comparison
+without requiring multi-node infrastructure.
 Three clients were chosen because the 737-patient cohort cannot support larger
 client counts without reducing per-client data below the threshold for stable
 training, and three institutions represent a realistic small clinical consortium
