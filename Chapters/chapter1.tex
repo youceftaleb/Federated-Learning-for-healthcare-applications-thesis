@@ -123,10 +123,11 @@ further amplified in distributed settings where data are spread across instituti
 \label{sec:ai-healthcare}
 % ============================================================
 
-\textbf{Artificial intelligence (AI)} denotes computational systems capable of
+\textbf{Artificial intelligence (AI)} is the branch of computer science dedicated to
+designing computational systems capable of
 performing tasks that ordinarily require human cognitive faculties
 \cite{russell2016artificial}.
-\textbf{Machine learning (ML)} is the subfield in which algorithms acquire predictive
+\textbf{Machine learning (ML)} is the subfield of AI in which algorithms acquire predictive
 capability from empirical data: a parameterised model is estimated by minimising a
 loss function over a labelled corpus, inducing a mapping from inputs to outputs
 expected to generalise to unseen observations.
@@ -134,6 +135,11 @@ expected to generalise to unseen observations.
 that learn distributed representations from raw data at progressively increasing levels
 of abstraction, discovering task-relevant features automatically without
 hand-engineered extractors.
+
+In healthcare, AI has shown significant potential to transform disease
+diagnosis, prognosis, and patient management by
+leveraging large and complex medical datasets including clinical records, medical images,
+biosignals, and genomic profiles.
 
 \begin{figure}[htbp]
     \centering
@@ -168,16 +174,74 @@ requiring hand-crafted feature extraction;
 deep learning supersedes them for volumetric MRI analysis and is the paradigm
 adopted in this work.
 
+% ------------------------------------------------------------
+\subsubsection{Challenges of Machine Learning in Healthcare}
+% ------------------------------------------------------------
+
+Despite its promise, deploying ML in healthcare presents several persistent challenges:
+
+\begin{itemize}
+    \item \textbf{Data heterogeneity}: Medical data spans multiple modalities — imaging, 
+    signals, text, and tabular records — each requiring distinct preprocessing and 
+    representation strategies.
+    
+    \item \textbf{Class imbalance}: In many clinical tasks, such as rare disease detection 
+    or adverse event prediction, the minority class is severely underrepresented, leading 
+    to biased models.
+    
+    \item \textbf{Annotation cost}: Labeling medical data requires expert clinical 
+    knowledge, making large-scale annotated datasets difficult and costly to produce.
+    
+    \item \textbf{Interpretability}: Clinical adoption of ML models requires that 
+    decisions be explainable to clinicians, creating tension with the opacity of 
+    complex models.
+    
+    \item \textbf{Privacy and data governance}: Patient data is subject to strict 
+    regulatory frameworks (GDPR, HIPAA, Law~18-07), severely limiting the ability to centralize 
+    data across institutions for training which is a core motivation for federated 
+    learning \cite{EU2016GDPR}\cite{hipaa1996}.
+\end{itemize}
+
 % ============================================================
 \subsection{Deep Learning}
 % ============================================================
 
 Deep learning uses artificial neural networks with multiple successive layers to
 automatically learn hierarchical representations from raw data \cite{lecun2015deep}.
+ANNs, inspired by the functioning of neurons in the human brain,
+are at the heart of deep learning. Although introduced in the 1940s,
+their development was hindered by the lack of data until the era of big
+data. Today, they play a key role in the advancement of artificial
+intelligence, though they represent just one of many available approaches.
+
+\paragraph{The multilayer perceptron (MLP)}
+is simplest deep learning architecture,it is a fully connected feedforward
+network in which every neuron in one layer is connected to every neuron
+in the next. An MLP with one hidden layer computes:
+
+\[
+\hat{y} = f_2(W_2 \cdot f_1(W_1 \mathbf{x} + b_1) + b_2)
+\]
+
+where $f_1$ and $f_2$ are activation functions and $W_1, W_2$ are weight matrices. 
+Deeper MLPs can approximate arbitrarily complex functions \cite{hornik1989multilayer}. 
+In healthcare, MLPs are commonly applied to structured tabular data such as 
+clinical records and laboratory results, and serve as the backbone for more 
+specialized architectures such as CNNs and RNNs.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/DeepNeuralNetwork.jpg}
+        \caption{Deep neural network example (MLP) \cite{ibmneuralnetwork}}
+        \label{fig:mlp}
+\end{figure}
+
+\paragraph{Activation Functions}
 Non-linear activation functions --- most notably ReLU for hidden layers and GELU
-for transformer-style blocks --- are essential components of all deep networks used
-in this thesis, enabling the network to model complex patterns beyond those
-representable by a linear model.
+for transformer-style blocks --- introduce non-linearity into neural networks,
+enabling them to learn complex patterns. Without activation functions,
+a neural network would behave like a linear model regardless of its
+depth, limiting its ability to solve complex tasks.
 
 % ------------------------------------------------------------
 \subsubsection{Training Deep Neural Networks}
@@ -208,6 +272,35 @@ low-gradient regions.
 Adam \cite{kingma2015adam} combines adaptive per-parameter learning rates with
 momentum accumulation, offering faster and more stable convergence, and is the
 default optimiser for the models developed in this thesis.
+
+\paragraph{Overfitting and Underfitting}
+\textbf{Overfitting} occurs when a model performs well on the \textbf{training} dataset
+but poorly on the \textbf{test} data meaning the model is just memorising the training
+data, resulting in poor generalization to new samples. Conversely,
+\textbf{underfitting} happens when a model is too simple to capture
+underlying patterns, yielding poor performance on both training and
+test data.
+
+Strategies to address these issues include:
+
+\begin{itemize}
+    \item \textbf{Regularization:} Techniques like L1 (lasso) and L2 (ridge)
+    add a penalty term to the loss function, discouraging overly large weights and promoting simpler models.
+    \item \textbf{Dropout:} Temporarily deactivates random neurons during
+    training, forcing the network to learn redundant and more robust representations.
+    \item \textbf{Batch Normalization:} Normalizes activations at each layer,
+    reducing internal covariate shift and stabilizing learning, which can improve generalization.
+    \item \textbf{Data Augmentation:} Artificially increases the diversity of
+    training data via transformations (e.g., rotations, flips), reducing overfitting by exposing the model to more variations.
+    \item \textbf{Early Stopping:} Monitors validation performance and halts
+    training when improvements plateau or degrade, preventing the network from overfitting the training set.
+    \item \textbf{Hyperparameter Tuning:} Adjusting learning rates, network depth,
+    number of neurons, or batch sizes can help balance underfitting and overfitting.
+\end{itemize}
+
+By carefully combining these methods, a network can achieve both good fit to the
+training data and strong generalization to unseen samples, which is essential for
+robust deep learning performance.
 
 % ------------------------------------------------------------
 \subsubsection{Convolutional Neural Networks (CNNs)}
