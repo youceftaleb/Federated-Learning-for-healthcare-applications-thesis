@@ -89,8 +89,6 @@ The \texttt{timm} library supplies the pretrained
 ConvNeXt-Nano weights and model construction utilities.
 Flower provides the federated learning simulation framework.
 SimpleITK handles MRI volume loading and spatial resampling.
-PyRadiomics performs the hand-crafted feature extraction
-described in Section~\ref{sec:radiomics}.
 
 \begin{table}[htbp]
   \centering
@@ -106,7 +104,6 @@ described in Section~\ref{sec:radiomics}.
     Flower      & 1.x         & FL simulation \\
     MONAI       & 1.3.0       & Medical imaging utilities \\
     SimpleITK   & 2.x         & Volume loading \\
-    PyRadiomics & 3.x         & Feature extraction \\
     scikit-learn & 1.x        & Cross-validation, metrics \\
     NumPy       & $<$2.0      & Numerical operations \\
     \bottomrule
@@ -370,7 +367,7 @@ are substantially above the macro average.
 
 
 % ============================================================
-\section{Federated Learning Results}
+\section{Federated Experiment Results}
 \label{sec:fl-results}
 % ============================================================
 
@@ -631,7 +628,8 @@ the larger hospitals.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{figures/ch4_fl_comparison.pdf}
-  \caption{Macro F1 and AUC-ROC comparison across all
+  \caption[FL results comparison bar chart]{Macro F1 and
+    AUC-ROC comparison across all
     experimental configurations. FedSCRT closes 84.1\%
     of the federated performance gap and achieves
     AUC-ROC = 0.687, exceeding the centralised baseline
@@ -816,7 +814,8 @@ problems.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.95\linewidth]{figures/ch4_convergence_curves.pdf}
-  \caption{Macro F1 (left) and AUC-ROC (right) per
+  \caption[AUC and F1 convergence per round]{Macro F1
+    (left) and AUC-ROC (right) per
     communication round under extreme non-IID conditions
     ($\alpha=0.5$, $K=3$ hospitals, $R=20$ rounds,
     $E=2$ local epochs).
@@ -888,7 +887,7 @@ reference (0.687 vs 0.674).
 
 
 % ============================================================
-\section{Classification Performance}
+\section{Detailed Classification Analysis}
 \label{sec:classification-performance}
 % ============================================================
 
@@ -899,9 +898,6 @@ Confusion matrices reveal the pattern of systematic errors
 under each aggregation strategy.
 ROC curves characterise discriminative capacity
 independently of the operating threshold.
-The calibration analysis quantifies the degree to which
-predicted confidence scores are consistent with empirical
-accuracy.
 
 \subsection{Confusion Matrix}
 \label{sec:confusion-matrix}
@@ -944,7 +940,8 @@ any raw data to leave the institutional boundary.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\linewidth]{figures/ch4_confusion_matrices.pdf}
-  \caption{Normalised confusion matrices for all four
+  \caption[Confusion matrices --- all FL configurations]{%
+    Normalised confusion matrices for all four
     experimental configurations (binary classification,
     fold~0 validation, 148 patients).
     FedAvg collapses to all-Luminal prediction
@@ -987,110 +984,6 @@ with the hypothesis that federated exposure to three
 structurally distinct patient distributions provides
 discriminative regularisation beyond what single-fold
 centralised training achieves.
-
-\subsection{Calibration Analysis}
-\label{sec:calibration}
-
-Figure~\ref{fig:binary-calibration} presents the
-reliability diagram for the binary centralised baseline.
-Each point plots the mean predicted confidence against
-the observed accuracy for a bin of validation patients
-grouped by their maximum softmax probability.
-A perfectly calibrated model would follow the diagonal.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.58\linewidth]{figures/ch4_binary_reliability.png}
-  \caption{Reliability diagram for the binary centralised
-    baseline (fold~0). Points above the diagonal indicate
-    underconfidence; points below indicate overconfidence.
-    The model is overconfident at high confidence values,
-    a pattern typical of LDAM-trained models where the
-    margin loss pushes logits toward large magnitudes for
-    the dominant class.}
-  \label{fig:binary-calibration}
-\end{figure}
-
-The reliability diagram reveals systematic overconfidence
-at high predicted probability values: when the model
-predicts Luminal with confidence above 0.8, the observed
-accuracy is consistently lower than the predicted confidence.
-This behaviour is a known consequence of margin-based losses
-such as LDAM \cite{cao2019ldam}: the scaled logits
-($s=15$) produce softmax outputs that are more extreme
-than the underlying discriminative evidence warrants.
-The Brier score provides a scalar summary of this
-miscalibration; the binary centralised result reported
-in Table~\ref{tab:fl-results} reflects this overconfidence
-pattern.
-
-Post-hoc calibration correction via temperature scaling
-would be expected to improve both the reliability diagram
-and the Brier score without affecting the AUC or macro F1.
-Temperature scaling in the federated setting, where
-a calibration temperature must be estimated without a
-shared held-out set, is identified as a direction for
-future work.
-
-\subsection{Radiomics Fusion}
-\label{sec:results-fusion}
-
-Whole-breast radiomic features extracted without tumour
-segmentation masks did not improve upon deep MIL
-representations alone: the fusion model achieves macro
-F1 = 0.5307 (AUC = 0.6333), compared to
-F1 = 0.6022 (AUC = 0.6810) for the deep-features-only
-baseline (Table~\ref{tab:radiomics-fusion}).
-
-\begin{table}[htbp]
-  \centering
-  \caption{Radiomics fusion experiment (fold~0 only).
-    The 315-dimensional concatenated representation
-    performs below the 256-dimensional deep-only baseline.}
-  \label{tab:radiomics-fusion}
-  \renewcommand{\arraystretch}{1.3}
-  \begin{tabular}{lcc}
-    \toprule
-    \textbf{Feature set} & \textbf{Macro F1} & \textbf{AUC-ROC} \\
-    \midrule
-    Deep MIL only (256-dim)       & 0.6022 & 0.6810 \\
-    Deep MIL + Radiomics (315-dim) & 0.5307 & 0.6333 \\
-    \midrule
-    Difference & $-0.0715$ & $-0.0477$ \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-This finding is consistent with the theoretical role of
-the Gated Attention MIL mechanism.
-The attention scores $\hat{a}_k$ learn to weight axial
-slices by their discriminative content, implicitly
-identifying the enhancing tumour region without requiring
-an explicit mask.
-The 59 whole-breast radiomic features (first-order
-statistics, GLCM texture, and shape descriptors computed
-on a foreground intensity mask) capture global
-parenchymal characteristics that the backbone has already
-encoded more richly through end-to-end learning.
-Adding 59 weakly discriminative global features to 256
-learned features introduces noise into the joint
-representation, diluting the signal rather than
-supplementing it.
-
-This result carries an important implication: published
-breast MRI radiomics studies that report higher macro F1
-invariably extract features from tumour regions of interest
-defined by manual or automated segmentation
-\cite{saha2018,ghosh2020clustered}.
-Tumour-specific radiomics, which captures enhancement
-kinetics and morphology within the lesion boundary,
-would be expected to provide genuinely complementary
-information that the backbone cannot recover from
-whole-breast analysis alone.
-Tumour segmentation masks are identified as the primary
-enabling requirement for meaningful radiomics fusion in
-future work.
-
 
 % ============================================================
 \section{Comparison with State of the Art}
@@ -1199,13 +1092,6 @@ SCAFFOLD convergence, a federated class-balanced retraining
 stage yields macro F1 = 0.629 and AUC = 0.687, closing
 84.1\% of the federated performance gap and exceeding the
 centralised AUC by 0.013 points.
-
-The radiomics fusion experiment yields a negative result
-(F1 = 0.531 vs deep-only F1 = 0.602), which is attributed
-to the GatedAttentionMIL mechanism already encoding the
-discriminative spatial information that whole-breast
-hand-crafted statistics attempt to capture.
-Tumour-specific radiomics remains an open direction.
 
 The General Conclusion synthesises these findings,
 positions them within the federated medical imaging

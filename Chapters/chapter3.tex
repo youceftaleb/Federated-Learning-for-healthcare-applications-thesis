@@ -1,6 +1,5 @@
 % ============================================================
 %  CHAPTER 3 — PROPOSED ARCHITECTURE AND METHODOLOGY
-%  Sections: 3.1 through 3.9
 % ============================================================
 \chapter{Proposed Architecture and Methodology}
 \label{chap:methodology}
@@ -42,9 +41,219 @@ the federated configuration; Section~\ref{sec:eval-protocol} defines evaluation.
 
 
 % ============================================================
-\section{Overall System Architecture}
+\section{Dataset Description}
+\label{sec:dataset}
+% ============================================================
+
+
+% ------------------------------------------------------------
+\subsection{Source and Clinical Context}
+\label{sec:dataset-description}
+% ------------------------------------------------------------
+
+The legal and ethical motivations for federated breast MRI classification are
+established in Chapter~1 (Section~\ref{sec:healthcare-data}) and Chapter~2
+(Section~\ref{sec:privacy-overview}).
+
+The dataset is the Breast MRI Molecular Cancer Subtype collection published on
+Zenodo by Alves and Boulogne \cite{alves2023breastmri} (AUC23 Challenge),
+originating from Duke University Medical Centre (Saha~et~al.\ \cite{saha2018},
+retrospective, 2000--2014).
+The modality is three-dimensional DCE-MRI (T1-weighted, fat-saturated subtraction
+images) stored as MetaImage (\texttt{.mha}) volumes approximating
+$448 \times 448 \times 160$ voxels.
+The collection contains 737 biopsy-confirmed patients assigned one of four
+molecular subtypes (Luminal~A, Luminal~B, HER2-enriched, Triple-Negative)
+determined from immunohistochemical assays; subtype determines systemic treatment
+strategy in breast oncology.
+No tumour segmentation masks are included; all experiments operate on a
+standardised $64 \times 128 \times 128$ voxel volume derived from the original
+acquisition by centre-cropping and trilinear resampling
+(Section~\ref{sec:resampling}).
+
+
+% ------------------------------------------------------------
+\subsection{Binary Reformulation for Federated Training}
+\label{sec:binary-task}
+% ------------------------------------------------------------
+
+The four-class molecular subtype classification task
+presents a fundamental data scarcity constraint that
+motivates a clinically grounded reformulation.
+As established in Section~\ref{sec:cv-split}, the HER2
+class contains only 46 patients across all 737 samples,
+yielding approximately nine HER2 validation patients per
+fold under five-fold cross-validation.
+At this scale, a single misclassified HER2 patient shifts
+the per-class F1 score by approximately 0.08 points,
+making the four-class validation metric statistically
+unstable and setting a practical performance ceiling on
+the centralised experiment of approximately $0.40$ macro F1.
+
+The four-class problem is therefore reformulated as a
+binary classification task for the federated learning
+experiment.
+Luminal~A and Luminal~B subtypes are merged into a single
+\emph{Luminal} class (label~0, $n=557$), and HER2-enriched
+and Triple-Negative subtypes are merged into a single
+\emph{Non-Luminal} class (label~1, $n=180$).
+
+This reformulation is doubly motivated.
+Clinically, the primary decision boundary in breast
+oncology treatment planning is hormone receptor status:
+Luminal tumours (ER/PR-positive) are candidates for
+endocrine therapy such as tamoxifen or aromatase
+inhibitors, while Non-Luminal tumours are not and are
+instead treated with cytotoxic chemotherapy and, where
+applicable, anti-HER2 agents \cite{ghosh2020clustered}.
+The binary task therefore maps directly to the clinical
+triage decision of hormone therapy eligibility, making
+the classification output immediately actionable in a
+privacy-constrained federated setting.
+
+Methodologically, the binary reformulation is an
+optimisation decision that directly reduces Problem~1
+severity: the imbalance ratio drops from 10.4:1
+(Luminal~A versus HER2 in the four-class setting) to
+3.1:1 (Luminal versus Non-Luminal), tripling the
+effective minority class size from 46 to 180 samples.
+This makes the SCAFFOLD convergence behaviour
+measurable within the 20-round budget and the LDAM
+margin calibration stable across folds.
+Without this reformulation, the HER2 per-client sample
+counts under any realistic Dirichlet partition would drop to
+single digits at the smaller clients, making convergence
+monitoring statistically meaningless.
+
+% ------------------------------------------------------------
+\subsection{Class Distribution and Imbalance}
+\label{sec:class-imbalance}
+% ------------------------------------------------------------
+
+Table~\ref{tab:class-distribution} presents the class
+distribution of the 737-patient cohort.
+Luminal~A tumours, which are oestrogen-receptor and
+progesterone-receptor positive and HER2-negative, account for
+65.3\% of the cohort, reflecting the epidemiological
+prevalence of this subtype in a population-based screening
+setting \cite{ghosh2020clustered}.
+At the opposite extreme, HER2-enriched tumours represent only
+6.2\% of the cohort, yielding a Luminal~A to HER2 imbalance
+ratio of 10.4:1.
+This degree of imbalance is clinically realistic but presents
+a severe challenge for standard cross-entropy training, which
+tends to produce models biased toward the majority class.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Class distribution and binary reformulation]{%
+    Class distribution of the breast DCE-MRI dataset.
+    \textbf{(a)}~Four-class distribution: 481 Luminal~A
+    (65.3\%), 76 Luminal~B (10.3\%), 46 HER2-enriched
+    (6.2\%), and 134 Triple-Negative (18.2\%) patients.
+    The 10.4:1 Luminal~A to HER2 ratio defines the
+    primary imbalance challenge.
+    \textbf{(b)}~Binary grouping for federated training:
+    Luminal subtypes (A+B, 557 patients) versus
+    Non-Luminal subtypes (HER2+TN, 180 patients),
+    yielding a 3.1:1 imbalance ratio.
+    The binary boundary corresponds to the clinical
+    hormone-receptor positivity criterion.}
+  \label{tab:class-distribution}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{clccc}
+    \toprule
+    \textbf{Class} & \textbf{Subtype} & \textbf{Receptor profile}
+      & \textbf{Count} & \textbf{\%} \\
+    \midrule
+    0 & Luminal A       & ER/PR+, HER2$-$ & 481 & 65.3 \\
+    1 & Luminal B       & ER/PR+, HER2$\pm$ &  76 & 10.3 \\
+    2 & HER2-enriched   & ER/PR$-$, HER2+ &  46 &  6.2 \\
+    3 & Triple Negative & ER/PR/HER2$-$   & 134 & 18.2 \\
+    \midrule
+    \multicolumn{3}{l}{\textbf{Total}} & \textbf{737} & \textbf{100.0} \\
+    \bottomrule
+  \end{tabular}
+\begin{minipage}{\linewidth}
+  \smallskip\footnotesize
+  $^\dagger$ Receptor profiles follow the IHC surrogate
+  criteria of Saha~et~al.\ \cite{saha2018}.
+\end{minipage}
+\end{table}
+
+
+% ============================================================
+\section{System Architecture and Design Rationale}
 \label{sec:system-arch}
 % ============================================================
+
+The system described in this thesis was not designed
+in a single step.
+Each component was added to address a specific,
+documented failure of the preceding configuration ---
+a chain of incremental engineering decisions, each
+motivated by a concrete experimental observation.
+
+The starting point was a standard fine-tuned image
+classifier: a pretrained convolutional backbone with a
+linear head, trained on all available patients at once.
+This centralised baseline faces three compounding
+problems: (1)~the 10.4:1 class imbalance causes the
+classifier to ignore rare subtypes entirely;
+(2)~the absence of tumour masks means the model must
+learn which part of the breast is relevant without
+supervision; and (3)~training on 737 patients with a
+pretrained backbone risks catastrophic forgetting of
+useful ImageNet features if not handled carefully.
+
+Each component of the pipeline was introduced to
+resolve one of these problems:
+
+\begin{itemize}
+  \item \textbf{Two-phase pretraining} (Stage~1 head
+    warmup, then Stage~2 joint fine-tuning) addresses
+    catastrophic forgetting: stabilising the attention
+    head before unfreezing the backbone prevents
+    random head gradients from corrupting pretrained
+    features \cite{liu2022convnet}.
+
+  \item \textbf{Gated Attention MIL} replaces a
+    single-slice classifier with a whole-volume aggregator
+    that learns which axial slices are diagnostically
+    informative, eliminating the need for tumour
+    segmentation masks \cite{ilse2018attention}.
+
+  \item \textbf{LDAM loss} replaces cross-entropy to
+    enforce larger decision margins for rare classes,
+    addressing the collapse to majority-class prediction
+    under 10:1 imbalance \cite{cao2019ldam}.
+
+  \item \textbf{ASAM + SWA} sharpen the training
+    trajectory: ASAM finds a flatter loss minimum
+    \cite{kwon2021asam} and SWA stabilises it
+    \cite{izmailov2018swa}, improving generalisation
+    on the 148-patient validation fold.
+
+  \item \textbf{Classifier Retraining (cRT)} corrects
+    the persistent head bias after training: freezing
+    the backbone and retraining only the head with a
+    class-balanced sampler produces an unbiased
+    decision boundary without disturbing the learned
+    representations \cite{kang2020decoupling}.
+
+  \item \textbf{SCAFFOLD + FedSCRT} extend this
+    pipeline to the federated setting: SCAFFOLD
+    corrects inter-hospital gradient drift at the
+    representation level, and FedSCRT extends cRT
+    to the federated case, with a theoretical
+    guarantee that balanced sampling eliminates the
+    influence of each hospital's local class prior
+    (Theorem~\ref{thm:fedscrt}).
+\end{itemize}
+
+The following sections describe each component in detail.
+Figure~\ref{fig:model-pipeline} illustrates the complete
+local inference pipeline.
 
 
 % ------------------------------------------------------------
@@ -73,8 +282,9 @@ patient identifiers, or label information.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.90\linewidth]{figures/ch3_system_overview.png}
-  \caption{Overall architecture of the proposed federated learning
+  \includegraphics[width=0.90\linewidth]{figures/ch3_system_overview.pdf}
+  \caption[Federated system architecture overview]{Overall
+    architecture of the proposed federated learning
     system. Three simulated hospital clients hold disjoint non-IID
     partitions of the breast DCE-MRI dataset. Each client trains a
     local ConvNeXt-Nano + Gated Attention MIL model and uploads
@@ -105,88 +315,6 @@ Section~\ref{sec:client-simulation}.
 
 
 % ============================================================
-\section{Dataset Description}
-\label{sec:dataset}
-% ============================================================
-
-
-% ------------------------------------------------------------
-\subsection{Source and Clinical Context}
-\label{sec:dataset-description}
-% ------------------------------------------------------------
-
-The legal and ethical motivations for federated breast MRI classification are
-established in Chapter~1 (Section~\ref{sec:healthcare-data}) and Chapter~2
-(Section~\ref{sec:privacy-overview}).
-
-The dataset is the Breast MRI Molecular Cancer Subtype collection published on
-Zenodo by Alves and Boulogne \cite{alves2023breastmri} (AUC23 Challenge),
-originating from Duke University Medical Centre (Saha~et~al.\ \cite{saha2018},
-retrospective, 2000--2014).
-The modality is three-dimensional DCE-MRI (T1-weighted, fat-saturated subtraction
-images) stored as MetaImage (\texttt{.mha}) volumes approximating
-$448 \times 448 \times 160$ voxels.
-The collection contains 737 biopsy-confirmed patients assigned one of four
-molecular subtypes (Luminal~A, Luminal~B, HER2-enriched, Triple-Negative)
-determined from immunohistochemical assays; subtype determines systemic treatment
-strategy in breast oncology.
-No tumour segmentation masks are included; all experiments operate on the full
-breast volume.
-
-
-% ------------------------------------------------------------
-\subsection{Class Distribution and Imbalance}
-\label{sec:class-imbalance}
-% ------------------------------------------------------------
-
-Table~\ref{tab:class-distribution} presents the class
-distribution of the 737-patient cohort.
-Luminal~A tumours, which are oestrogen-receptor and
-progesterone-receptor positive and HER2-negative, account for
-65.3\% of the cohort, reflecting the epidemiological
-prevalence of this subtype in a population-based screening
-setting \cite{ghosh2020clustered}.
-At the opposite extreme, HER2-enriched tumours represent only
-6.2\% of the cohort, yielding a Luminal~A to HER2 imbalance
-ratio of 10.4:1.
-This degree of imbalance is clinically realistic but presents
-a severe challenge for standard cross-entropy training, which
-tends to produce models biased toward the majority class.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Class distribution of the breast DCE-MRI dataset
-    \cite{alves2023breastmri}.
-    The imbalance ratio between the majority class (Luminal~A)
-    and the minority class (HER2) is 10.4:1.}
-  \label{tab:class-distribution}
-  \renewcommand{\arraystretch}{1.3}
-  \begin{tabular}{clccc}
-    \toprule
-    \textbf{Class} & \textbf{Subtype} & \textbf{Receptor profile}
-      & \textbf{Count} & \textbf{\%} \\
-    \midrule
-    0 & Luminal A       & ER/PR+, HER2$-$ & 481 & 65.3 \\
-    1 & Luminal B       & ER/PR+, HER2$\pm$ &  76 & 10.3 \\
-    2 & HER2-enriched   & ER/PR$-$, HER2+ &  46 &  6.2 \\
-    3 & Triple Negative & ER/PR/HER2$-$   & 134 & 18.2 \\
-    \midrule
-    \multicolumn{3}{l}{\textbf{Total}} & \textbf{737} & \textbf{100.0} \\
-    \bottomrule
-  \end{tabular}
-\begin{minipage}{\linewidth}
-  \smallskip
-  \footnotesize
-  $^\dagger$ Luminal~B encompasses both HER2-positive and
-  HER2-negative tumours with high Ki67 proliferation index;
-  the receptor profile shown reflects the IHC surrogate
-  used in this dataset.
-\end{minipage}
-\end{table}
-
-
-
-% ============================================================
 \section{Data Preprocessing}
 \label{sec:preprocessing}
 % ============================================================
@@ -210,7 +338,9 @@ volume is clipped at the 1st and 99th percentiles to suppress
 outlier values caused by scanner noise and reconstruction
 artefacts.
 Let $p_1$ and $p_{99}$ denote the 1st and 99th percentile
-values of the unclipped volume $V$.
+values of the raw voxel intensity distribution of
+volume~$V$, computed independently over all voxels in
+that volume.
 The clipped volume is:
 \begin{equation}
   \tilde{V}(i,j,k)
@@ -268,6 +398,18 @@ is the largest spatial resolution that fits within
 the 6~GB VRAM budget when 64 slices are processed
 through the ConvNeXt-Nano backbone.
 
+The target spatial dimensions ($64 \times 128 \times 128$)
+were determined by the GPU memory budget of the training
+hardware (NVIDIA GeForce GTX~1660~Ti, 6\,GB VRAM):
+processing 64 slices of $224 \times 224$ pixels at
+batch size~2 requires approximately 4.8\,GB, leaving
+sufficient headroom for gradient computation under
+gradient checkpointing.
+The 150-slice axial crop retains the complete breast
+field of view for the vast majority of patients in the
+cohort, as confirmed by visual inspection of the volume
+boundaries prior to experiments.
+
 
 % ------------------------------------------------------------
 \subsection{2.5D Slice Extraction}
@@ -279,27 +421,31 @@ three-dimensional tensor, the model adopts a 2.5D strategy:
 the standardised $64 \times 128 \times 128$ volume is
 decomposed into 64 independent axial slices of spatial
 dimensions $128 \times 128$ pixels.
-Each slice is upsampled to $224 \times 224$ pixels using
-bilinear interpolation to match the spatial resolution
-expected by the ImageNet-pretrained ConvNeXt-Nano backbone.
+Each axial slice is bilinearly upsampled from
+$128 \times 128$ to $224 \times 224$ pixels, matching
+the input resolution expected by the ConvNeXt-Nano
+backbone pretrained on ImageNet-12k
+(timm identifier: \texttt{convnext\_nano.in12k\_ft\_in1k})
+\cite{liu2022convnet}.
+The backbone's convolutional filters are calibrated to
+spatial frequencies present at this resolution;
+feeding $128 \times 128$ slices directly would shift
+the effective receptive field by a factor of
+$224/128 = 1.75$, misaligning DCE-MRI spatial content
+with the pretrained feature space.
 
 \paragraph{Rationale for upscaling to $224 \times 224$.}
 Each $128 \times 128$ axial slice is upsampled to
 $224 \times 224$ pixels before backbone processing.
 This step is not redundant interpolation: the
-ConvNeXt-Nano backbone was pretrained on ImageNet at
+ConvNeXt-Nano backbone was pretrained on ImageNet-12k at
 $224 \times 224$ resolution and its convolutional
 filters are tuned to detect edges, textures, and
 semantic structures at the spatial frequencies
 present at that resolution.
-Feeding $128 \times 128$ slices directly would shift
-the effective receptive field of each filter by a
-factor of $224/128 = 1.75$, causing a mismatch
-between the spatial frequency bands the backbone
-expects and those present in the DCE-MRI input.
 Upscaling to $224 \times 224$ brings the DCE-MRI
 spatial frequency content into alignment with the
-ImageNet distribution the backbone was optimised
+ImageNet-12k distribution the backbone was optimised
 for, preserving the pretrained feature detectors
 that encode enhancement patterns at the correct
 scale.
@@ -361,6 +507,24 @@ latency of 30 to 60 seconds per volume at the available
 hardware, making full-epoch training computationally
 infeasible.
 
+The probability $p = 0.5$ for each spatial transform
+follows standard practice in medical image analysis
+\cite{litjens2017survey}, ensuring the model sees
+both original and augmented views with equal frequency.
+Rotations are restricted to multiples of $90^\circ$
+to preserve anatomical plausibility: arbitrary-angle
+rotations introduce corner interpolation artefacts
+incompatible with the axial acquisition geometry of
+DCE-MRI.
+The intensity scaling range $[0.9, 1.1]$ models the
+inter-scanner calibration variability of approximately
+$\pm 10\%$ reported in breast MRI reproducibility
+studies \cite{lavdas2019}.
+Additive Gaussian noise ($\sigma = 0.02$) corresponds
+to a 2\% signal perturbation on normalised $[0,1]$
+intensities, consistent with the noise floor of
+clinical 1.5\,T and 3\,T DCE-MRI acquisitions.
+
 
 % ------------------------------------------------------------
 \subsection{Cross-Validation Split}
@@ -391,9 +555,35 @@ reported together as the primary performance estimate.
 
 
 % ============================================================
-\section{Local Model Architecture}
+\section{Local Model: ConvNeXt-Nano with Gated Attention MIL}
 \label{sec:model-arch}
 % ============================================================
+
+Figure~\ref{fig:model-pipeline} illustrates the complete
+local inference pipeline, from DCE-MRI volume input to
+binary subtype prediction.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ch3_model_pipeline.pdf}
+  \caption[Local model inference pipeline]{Local model
+    inference pipeline.
+    A DCE-MRI volume ($64 \times 128 \times 128$ voxels)
+    is decomposed into 64 axial slices, each upsampled to
+    $224 \times 224$ pixels.
+    The ConvNeXt-Nano backbone processes each slice
+    independently, producing a 640-dimensional feature
+    vector projected to 256 dimensions.
+    The Gated Attention MIL head computes a per-slice
+    attention score $\hat{a}_k$ and produces a
+    volume-level embedding $\mathbf{z} = \sum_k
+    \hat{a}_k \mathbf{h}_k$.
+    The linear classifier maps $\mathbf{z}$ to the
+    binary subtype prediction.
+    All backbone weights are shared across the 64
+    slices.}
+  \label{fig:model-pipeline}
+\end{figure}
 
 
 % ------------------------------------------------------------
@@ -483,9 +673,9 @@ parameters in total.
 Gradient checkpointing is enabled throughout the backbone,
 which recomputes intermediate activations during the backward
 pass rather than storing them in memory.
-This reduces peak VRAM consumption by approximately 35\% at
-the cost of a proportional increase in floating-point
-operations, and is essential for fitting the full model
+This reduces peak VRAM consumption at the cost of
+additional recomputation during the backward pass,
+and is essential for fitting the full model
 within the 6 GB memory budget of the GTX~1660~Ti.
 During Stage~1 of training (Section~\ref{sec:stage1}),
 all backbone parameters are frozen and only the MIL head
@@ -507,7 +697,8 @@ Ilse~et~al.\ \cite{ilse2018attention}.
 Let $\mathbf{f}_k \in \mathbb{R}^{640}$ denote the backbone
 feature vector for the $k$-th axial slice,
 $k \in \{1, \ldots, 64\}$.
-A shared projection layer maps each feature to a
+A shared projection layer applies a Gaussian Error Linear
+Unit (GELU) activation to map each feature to a
 lower-dimensional space:
 \begin{equation}
   \mathbf{h}_k = \mathrm{GELU}(W_{\mathrm{proj}}\,\mathbf{f}_k)
@@ -517,7 +708,8 @@ lower-dimensional space:
 where $W_{\mathrm{proj}} \in \mathbb{R}^{256 \times 640}$
 and dropout with rate 0.3 is applied after the activation.
 
-The gated attention score for slice $k$ is:
+Following \textcite{ilse2018attention}, the gated
+attention score for slice~$k$ is:
 \begin{equation}
   a_k
   = \mathbf{w}^{\top}
@@ -612,7 +804,7 @@ The overall architecture contains 15\,184\,117 parameters.
 
 
 % ============================================================
-\section{Training Strategy}
+\section{Three-Stage Training Pipeline}
 \label{sec:training-strategy}
 % ============================================================
 
@@ -626,14 +818,18 @@ Stage~1 trains only the MIL head for 20 epochs with the
 backbone parameters frozen.
 The purpose of this stage is to stabilise the attention
 weights before backbone fine-tuning begins: since the
-backbone is already well-pretrained on ImageNet, its
+backbone is already well-pretrained on ImageNet-12k, its
 features are informative from the first epoch, and allowing
 the attention head to reach a reasonable operating point
 before joint training avoids the risk of the backbone
 adapting to uninformative attention distributions.
 
-The optimiser is AdamW with a learning rate of $10^{-3}$
+The optimiser is AdamW \cite{loshchilov2019adamw} (Adam with
+decoupled weight decay) with a learning rate of $10^{-3}$
 and a weight decay of 0.05.
+These values follow standard practice for fine-tuning
+pretrained convolutional backbones on small medical imaging
+datasets \cite{guan2024federated}.
 A cosine annealing schedule with linear warmup over the
 first two epochs governs the learning rate.
 The loss function is cross-entropy with label smoothing
@@ -656,7 +852,19 @@ The learning rates are set to $5 \times 10^{-5}$ for the
 backbone and $10^{-3}$ for the MIL head, with weight decay
 of 0.05 and 0.1 respectively, governed by independent
 cosine annealing schedules.
+The backbone learning rate is set one order of magnitude
+below the head learning rate to prevent catastrophic
+forgetting of pretrained ImageNet-12k features during
+joint fine-tuning.
+Dropout with rate $0.3$ (values of $0.1$ and $0.5$ were
+tested in preliminary fold~0 experiments; $0.3$ produced
+the highest validation F1) is applied in the MIL projection
+layer.
 Gradient norms are clipped to a maximum of 1.0 at each step.
+The 80-epoch budget was determined empirically:
+fewer than 55~epochs does not allow \textsc{ASAM}
+activation; more than 80~epochs showed diminishing
+returns on validation F1 in preliminary fold~0 experiments.
 
 \paragraph{Loss function: LDAM.}
 The Label-Distribution-Aware Margin (LDAM) loss
@@ -668,8 +876,12 @@ penalising misclassification of minority classes more heavily:
   \Delta_y = \frac{C}{n_y^{1/4}},
   \label{eq:ldam-margin}
 \end{equation}
-where $n_y$ is the number of training samples for class $y$
-and $C$ is a normalisation constant.
+where $n_y$ is the number of training samples for class~$y$
+and $C$ is a scaling constant chosen so that the maximum
+margin across classes equals $m_{\max}$: specifically
+$C = m_{\max} \cdot (\min_y n_y)^{1/4}$.
+This formula and scaling scheme follow
+Cao~et~al.\ \cite{cao2019ldam}.
 The modified cross-entropy loss with margin is:
 \begin{equation}
   \mathcal{L}_{\mathrm{LDAM}}(\mathbf{z}, y)
@@ -682,6 +894,24 @@ The modified cross-entropy loss with margin is:
     },
   \label{eq:ldam-loss}
 \end{equation}
+where $\mathbf{z} \in \mathbb{R}^C$ is the logit vector.
+The hyperparameters are set to a maximum margin
+$m_{\max} = 0.2$, scale $s = 15$, and $\beta = 0.9999$.
+These values are adopted from the recommended configuration
+of \textcite{cao2019ldam} for long-tailed recognition and
+confirmed on fold~0 validation prior to full five-fold
+training.
+Switching from LDAM to class-balanced cross-entropy at an
+intermediate epoch was tested in preliminary experiments but
+consistently caused class-prediction collapse; LDAM was
+therefore retained for all 80 epochs without schedule change.
+Figure~\ref{fig:ldam-margin} illustrates the
+class-frequency margin relationship.
+
+Figure~\ref{fig:ldam-margin} shows how the per-class margin
+$\Delta_y$ decreases as class frequency $n_y$ increases,
+assigning the largest margin to HER2-enriched (46 samples)
+and the smallest to Luminal~A (481 samples).
 
 \begin{figure}[htbp]
   \centering
@@ -694,15 +924,6 @@ The modified cross-entropy loss with margin is:
     Adapted from \cite{cao2019ldam}.}
   \label{fig:ldam-margin}
 \end{figure}
-
-where $\mathbf{z} \in \mathbb{R}^C$ is the logit vector.
-The hyperparameters are set to a maximum margin
-$m_{\max} = 0.2$, scale $s = 15$, and
-$\beta = 0.9999$.
-Switching from LDAM to class-balanced cross-entropy at an
-intermediate epoch was tested in preliminary experiments but
-consistently caused class-prediction collapse; LDAM was
-therefore retained for all 80 epochs without schedule change.
 
 \paragraph{Exponential Moving Average.}
 An exponential moving average (EMA) of the model weights
@@ -721,51 +942,52 @@ perturbed point to steer the optimisation toward flatter
 loss basins.
 Each ASAM step requires two forward passes, doubling the
 per-step compute from epoch 55 to the end of Stage~2.
+\textsc{ASAM} is activated at epoch~55, the final third
+of Stage~2, following the recommendation of
+\textcite{kwon2021asam} to apply sharpness-aware perturbation
+once the model approaches a local minimum.
+At epoch~55 the cosine learning rate schedule has decayed
+to approximately 15\,\% of its peak value, indicating that
+large-step gradient exploration is complete.
+All Stage~2 training is conducted in single-precision
+floating point (FP32) to avoid numerical instability in
+two computations critical to correctness: the \textsc{ASAM}
+perturbation norm and the \textsc{LDAM} margin calculation,
+both of which involve ratios of small class frequencies that
+risk underflow in half-precision arithmetic.
+Figure~\ref{fig:asam} illustrates the adaptive
+perturbation concept.
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.76\linewidth]{figures/kwon2021_asam.png}
-  \caption{Adaptive Sharpness-Aware Minimization (ASAM).
-    The adaptive perturbation neighbourhood scales with
-    parameter magnitudes, making the sharpness measure
-    invariant to parameter rescaling and finding flatter
-    loss basin minima than standard SGD.
-    Adapted from \cite{kwon2021asam}.}
-  \label{fig:asam}
-\end{figure}
-
-Mixed-precision automatic casting (AMP) is disabled during
-the ASAM phase to prevent numerical instability in the
-perturbation computation.
-Training was conducted in full single-precision floating
-point (FP32). Enabling automatic mixed
-precision~\cite{micikevicius2018mixed} would reduce
-per-experiment wall-clock time by approximately
-30--40\,\% on Turing-class GPUs, and is recommended for
-future experimental campaigns involving larger cohorts or
-more communication rounds.
+Figure~\ref{fig:asam} illustrates how \textsc{ASAM} seeks
+a wider, flatter loss basin compared to standard gradient
+descent.
 
 \paragraph{SWA.}
-Stochastic Weight Averaging (SWA) \cite{izmailov2018swa}
-is activated from epoch 65 onward.
-At each epoch, the current model weights are averaged into
-a running SWA model, progressively accumulating checkpoints
-that correspond to different points on the loss landscape.
-The SWA model occupies a broader, flatter basin than any
-individual checkpoint and has been shown empirically to
-improve generalisation \cite{izmailov2018swa}.
+Stochastic Weight Averaging \cite{izmailov2018swa}
+is activated at epoch~65, corresponding to 81\,\% of the
+Stage~2 training budget.
+\textcite{izmailov2018swa} recommend initiating checkpoint
+averaging at approximately 75\,\% of the training
+budget once the learning rate has decayed to a low
+value; epoch~65 satisfies this criterion, with the
+cosine schedule having reached approximately 8\,\% of
+its peak learning rate.
+The 16-epoch averaging window (epochs~65--80) provides
+sufficient checkpoints for the geometric ensemble to
+stabilise.
+This schedule follows the \textsc{ASAM} activation
+period (epochs~55--64): \textsc{ASAM} drives the
+optimisation toward a flat minimum, and \textsc{SWA}
+then averages checkpoints within that region, further
+improving generalisation \cite{izmailov2018swa}.
+A minimum of 10 averaging epochs is recommended by
+\textcite{izmailov2018swa}; 16~epochs satisfies this
+requirement with a margin.
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.76\linewidth]{figures/izmailov2018_swa.png}
-  \caption{Stochastic Weight Averaging (SWA) loss landscape.
-    Averaging checkpoints along the SGD trajectory leads
-    to a solution in a wider, flatter basin compared to any
-    individual checkpoint, improving generalisation on held-out
-    data.
-    Adapted from \cite{izmailov2018swa}.}
-  \label{fig:swa}
-\end{figure}
+Figure~\ref{fig:swa} illustrates how \textsc{SWA} averages
+model checkpoints along the optimisation trajectory to
+reach a point centred in the flat loss region found by
+\textsc{ASAM}.
 
 The best Stage~2 checkpoint by validation macro F1 is saved
 as \texttt{fold\{N\}\_stage2\_best.pt}.
@@ -802,75 +1024,46 @@ sampling.
 The Stage~2 best checkpoint is loaded, the backbone is frozen,
 and the 256-dimensional MIL embeddings for all training
 volumes are cached.
-The linear classifier is then trained for 300 epochs with
-a class-balanced sampler that draws an equal number of
-samples from each class per batch, an AdamW learning rate
-of $10^{-3}$, and weight decay of 0.01.
-This procedure is repeated for 10 independent random seeds
-and the seed that achieves the highest validation macro F1
-is selected.
-The best cRT head is saved as
-\texttt{fold\{N\}\_stage2\_best\_crt.pt}.
+The cRT stage trains for 300 epochs with
+AdamW ($\eta = 10^{-3}$, weight decay $= 0.01$).
+The learning rate is set substantially above the
+Stage~2 backbone value ($5 \times 10^{-5}$) because
+the head is randomly re-initialised and requires larger
+initial gradient steps to converge; a converged
+pretrained head would require a much smaller rate to
+avoid catastrophic forgetting.
+Weight decay of $0.01$ provides $\ell_2$ regularisation
+appropriate for the small parameter count
+($256 \times 2 + 2 = 514$ parameters) relative to the
+589-patient training set.
+The 300-epoch budget ensures convergence across all
+$J = 10$ random seeds \cite{kang2020decoupling}:
+with a class-balanced sampler at batch size~32 on
+589 patients, one epoch comprises approximately
+$\lceil 589/32 \rceil = 19$ gradient steps;
+300 epochs (${\approx}5{,}700$ steps) is necessary
+for a randomly initialised Linear$(256 \to 2)$ head
+to reach its optimum.
+\textcite{kang2020decoupling} use 10 epochs for cRT on
+ImageNet-LT where millions of samples yield
+${\gg}1{,}000$ steps per epoch; the substantially
+smaller dataset requires a proportionally larger epoch
+count to accumulate a comparable number of gradient
+steps.
+Seed selection by validation macro F1 acts as an
+implicit early stopping criterion robust to random
+initialisation, and the best checkpoint is saved as
+\texttt{fold\{N\}\_stage3\_best.pt}.
 
 
 % ============================================================
-\section{Federated Learning Experimental Setup}
+\section{Federated Learning Configuration and Baselines}
 \label{sec:fl-setup}
 % ============================================================
 
-
-% ------------------------------------------------------------
-\subsection{Binary Task Reformulation}
-\label{sec:binary-task}
-% ------------------------------------------------------------
-
-The four-class molecular subtype classification task
-presents a fundamental data scarcity constraint that
-motivates a clinically grounded reformulation.
-As established in Section~\ref{sec:cv-split}, the HER2
-class contains only 46 patients across all 737 samples,
-yielding approximately nine HER2 validation patients per
-fold under five-fold cross-validation.
-At this scale, a single misclassified HER2 patient shifts
-the per-class F1 score by approximately 0.08 points,
-making the four-class validation metric statistically
-unstable and setting a practical performance ceiling on
-the centralised experiment of approximately $0.40$ macro F1.
-
-The four-class problem is therefore reformulated as a
-binary classification task for the federated learning
-experiment.
-Luminal~A and Luminal~B subtypes are merged into a single
-\emph{Luminal} class (label~0, $n=557$), and HER2-enriched
-and Triple-Negative subtypes are merged into a single
-\emph{Non-Luminal} class (label~1, $n=180$).
-
-This reformulation is doubly motivated.
-Clinically, the primary decision boundary in breast
-oncology treatment planning is hormone receptor status:
-Luminal tumours (ER/PR-positive) are candidates for
-endocrine therapy such as tamoxifen or aromatase
-inhibitors, while Non-Luminal tumours are not and are
-instead treated with cytotoxic chemotherapy and, where
-applicable, anti-HER2 agents \cite{ghosh2020clustered}.
-The binary task therefore maps directly to the clinical
-triage decision of hormone therapy eligibility, making
-the classification output immediately actionable in a
-privacy-constrained federated setting.
-
-Methodologically, the binary reformulation is an
-optimisation decision that directly reduces Problem~1
-severity: the imbalance ratio drops from 10.4:1
-(Luminal~A versus HER2 in the four-class setting) to
-3.1:1 (Luminal versus Non-Luminal), tripling the
-effective minority class size from 46 to 180 samples.
-This makes the SCAFFOLD convergence behaviour
-measurable within the 20-round budget and the LDAM
-margin calibration stable across folds.
-Without this reformulation, the HER2 per-client sample
-counts under any realistic Dirichlet partition would drop to
-single digits at the smaller clients, making convergence
-monitoring statistically meaningless.
+The binary reformulation of the classification task
+used in all federated experiments is defined in
+Section~\ref{sec:binary-task}.
 
 
 % ------------------------------------------------------------
@@ -998,6 +1191,10 @@ scenario (Hospital~3 Non-Luminal dominant) and the idealised
 data-sharing baseline respectively.
 The $\alpha=0.1$ configuration was excluded because it
 produces a degenerate partition under seed=42.
+
+Figure~\ref{fig:dirichlet-partition} shows the class
+distribution across clients under the primary non-IID
+partition.
 
 \begin{figure}[htbp]
   \centering
@@ -1230,7 +1427,7 @@ via weighted averaging.
 \Ensure  Global model $(\Psi^*_\theta,\, \mathbf{w}^*)$
 
 \Statex
-\Statex \textbf{Phase 1 — SCAFFOLD Backbone Training}
+\Statex \textbf{Phase 1 --- SCAFFOLD Backbone Training}
 \Statex \hrulefill
 
 \State Initialise $\mathbf{W}^{(0)}$,\;
@@ -1280,7 +1477,7 @@ via weighted averaging.
        \Comment{freeze; discard head weights}
 
 \Statex
-\Statex \textbf{Phase 2 — Federated Classifier Retraining}
+\Statex \textbf{Phase 2 --- Federated Classifier Retraining}
 \Statex \hrulefill
 
 \For{each client $k \in \{1,\ldots,K\}$
@@ -1326,7 +1523,7 @@ via weighted averaging.
 \end{algorithmic}
 \end{algorithm}
 
-\paragraph{Phase 1 — SCAFFOLD Backbone Training (lines 1--15).}
+\paragraph{Phase 1 --- SCAFFOLD Backbone Training (lines 1--15).}
 The first phase is standard SCAFFOLD
 \cite{karimireddy2020scaffold}.
 Each client performs $E$ drift-corrected local gradient
@@ -1346,7 +1543,7 @@ gradient is unbiased only when the backbone is fixed,
 because a trainable backbone would re-introduce the
 imbalanced class-prior into the representation space.
 
-\paragraph{Phase 2 — Federated Classifier Retraining
+\paragraph{Phase 2 --- Federated Classifier Retraining
 (lines 16--27).}
 Each client independently retrains the classification
 head from scratch using class-balanced sampling on
@@ -1393,7 +1590,8 @@ transmitted in each SCAFFOLD round.
 FedSCRT transmits only model parameters at every stage.
 Raw imaging data, patient identifiers, and label
 distributions never leave the client institution,
-consistent with the federated privacy model established in Chapter~2.
+consistent with the federated privacy model established
+in Chapter~2.
 
 \textbf{Runs~5--6 --- FedAvg and SCAFFOLD, $\alpha=100$}:
 Near-IID comparison partitions in which all three
@@ -1405,119 +1603,9 @@ statistical heterogeneity versus other factors.
 
 
 % ============================================================
-\section{Radiomic Feature Extraction}
-\label{sec:radiomics}
-% ============================================================
-
-Deep learning extracts feature representations
-implicitly through end-to-end training, which raises
-the question of why explicit radiomic features are
-computed in addition.
-Four reasons justify this decision in the specific
-context of this work.
-
-\textbf{Small dataset regime.}
-With 737 patients and roughly 590 training samples
-per fold, the ConvNeXt-Nano backbone has insufficient
-data to fully converge its texture-sensitive filters
-from the pretrained ImageNet initialisation to the
-DCE-MRI domain.
-Radiomics features are computed analytically from
-the image intensity distribution and require no
-learning: they contribute information that is
-completely independent of training data volume.
-
-\textbf{Interpretability for clinical adoption.}
-A deployed breast MRI classifier must provide
-explanations that a radiologist can validate.
-The 640-dimensional MIL embedding produced by
-the backbone is opaque; a 59-dimensional vector
-of GLCM entropy, sphericity, and mean intensity
-is directly interpretable in the radiological
-vocabulary of tumour heterogeneity and morphology.
-
-\textbf{Complementarity of representations.}
-Deep features capture hierarchical semantic
-patterns learned from ImageNet and adapted to
-DCE-MRI; radiomics captures explicit statistical
-properties of the global enhancement pattern
-across the whole breast.
-Because no tumour mask is available, both modalities
-operate on the same spatial extent, but at
-fundamentally different abstraction levels.
-Prior work on small-cohort medical imaging has
-consistently shown that fusing deep and classical
-features outperforms either alone
-\cite{guan2024federated,ghosh2020clustered}.
-
-\textbf{Whole-breast analysis without segmentation.}
-Standard tumour radiomics requires a mask; the
-dataset provides none.
-Whole-breast radiomics instead captures global
-enhancement kinetics and parenchymal texture,
-which are known imaging surrogates for molecular
-subtype in the breast MRI literature
-\cite{saha2018}.
-
-\subsection{Feature Extraction Protocol}
-\label{sec:radiomics-extraction}
-
-Each volume is resampled to an isotropic voxel spacing
-of $3\,\text{mm}^3$ using linear interpolation prior to
-feature extraction, reducing the per-volume voxel count
-from approximately $32 \times 10^6$ to $8.5 \times 10^5$
-and making extraction computationally tractable.
-Because no tumour segmentation masks are available in
-this dataset (Section~\ref{sec:dataset-description}),
-the extraction mask is defined as the foreground region:
-all voxels with normalised intensity $\hat{V} > 0.01$,
-isolating the enhancing breast tissue from background.
-
-Three feature classes are extracted from each volume.
-\textbf{First-order statistics} (18 features) describe
-the univariate distribution of voxel intensities within
-the mask, including mean, standard deviation, skewness,
-kurtosis, energy, entropy, and percentile summaries.
-\textbf{Grey-level co-occurrence matrix (GLCM)} features
-(24 features) quantify the spatial relationship between
-pairs of voxel intensities and capture second-order
-texture properties such as contrast, correlation,
-homogeneity, and energy.
-\textbf{Shape features} (17 features) describe the
-three-dimensional morphology of the enhancing region,
-including volume, surface area, sphericity, elongation,
-and maximum diameter.
-The extraction yields a feature vector of 59 dimensions
-per patient.
-All 737 patients were successfully processed, producing
-a complete feature matrix
-$X_{\mathrm{rad}} \in \mathbb{R}^{737 \times 59}$.
-
-\subsection{Fusion with Deep Features}
-\label{sec:radiomics-fusion}
-
-For the fold-0 proof-of-concept fusion experiment, the
-256-dimensional MIL embedding $\mathbf{z}$ produced by
-Stage~2 is concatenated with the 59-dimensional radiomic
-vector to form a 315-dimensional joint representation.
-Radiomic features are standardised to zero mean and unit
-variance using statistics computed from the fold-0
-training set only, preventing information leakage from
-the validation set.
-A multi-layer perceptron with one hidden layer of 128
-units, ReLU activation, and dropout of 0.3 is trained
-on the concatenated representation using a
-class-balanced sampler and AdamW with learning rate
-$10^{-3}$ for 300 epochs.
-This experiment is reported in
-Section~\ref{sec:results-fusion} as a comparison against
-the deep-features-only baseline, and a full five-fold
-evaluation is planned as future work.
-
-
-% ============================================================
-\subsection{Theoretical Foundation of FedSCRT}
+\section{Theoretical Foundation of FedSCRT}
 \label{sec:fedscrt-theory}
+% ============================================================
 
 The design of FedSCRT rests on a provable decoupling
 property of class-balanced sampling.
@@ -1691,7 +1779,7 @@ This explains the residual gap of 0.038 F1 points
 observed in the experiment (Section~\ref{sec:fedscrt-results}).
 
 % ============================================================
-\section{Evaluation Protocol}
+\section{Evaluation Protocol and Metrics}
 \label{sec:eval-protocol}
 % ============================================================
 

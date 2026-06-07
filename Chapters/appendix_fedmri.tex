@@ -117,7 +117,8 @@ real Flower clients on each hospital VM.
   \centering
   \includegraphics[width=\linewidth]%
     {figures/appendix/app_architechter.png}
-  \caption{Full system architecture of the FedMRI platform.
+  \caption[FedMRI system architecture]{Full system
+    architecture of the FedMRI platform.
     The frontend layer (Next.js web + Expo mobile) communicates
     with the NestJS backend via REST and WebSocket.
     The backend dispatches prediction requests synchronously
@@ -194,7 +195,8 @@ cases.
   \centering
   \includegraphics[width=0.82\linewidth]%
     {figures/appendix/FedMRI___Sequence_Doctor_Upload__FL_Round_AutoTrigger.png}
-  \caption{Sequence diagram for the Doctor scan upload
+  \caption[Doctor upload and FL round sequence]{Sequence
+    diagram for the Doctor scan upload
     and FL round auto-trigger flow.
     The doctor submits a scan (JWT authenticated).
     The NestJS backend forwards the image path to the
@@ -327,7 +329,8 @@ automatically initiated.
   \centering
   \includegraphics[width=\linewidth]%
     {figures/appendix/FedMRI___database_schema.png}
-  \caption{Entity-relationship diagram for the FedMRI
+  \caption[FedMRI database entity-relationship diagram]{%
+    Entity-relationship diagram for the FedMRI
     PostgreSQL schema (Prisma ORM).
     Nine entities cover hospital and user management,
     case storage with silo isolation, FL round

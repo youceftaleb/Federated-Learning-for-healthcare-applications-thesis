@@ -180,7 +180,7 @@ This objective is mathematically equivalent to empirical risk minimisation
 over the pooled dataset yet can be minimised without ever pooling the data
 \cite{kairouz2021advances}.
 At each communication round $t$ the server broadcasts global parameters
-$\mathbf{w}^{(t)}$, each selected client performs $E$ local SGD steps, and
+$\mathbf{w}^{(t)}$, each selected client performs $E$ local Stochastic Gradient Descent (SGD) steps, and
 the server aggregates the updates:
 \begin{equation}
   \mathbf{w}^{(t+1)}
@@ -674,7 +674,6 @@ contextualise the performance of the primary strategies.
 \label{sec:communication}
 % ============================================================
 
-\subsection{Communication Overhead: Context and Scope}
 \label{sec:comm-overview}
 \label{sec:comm-overhead}
 \label{sec:compression}
@@ -702,7 +701,6 @@ General Conclusion.
 \label{sec:privacy-security}
 % ============================================================
 
-\subsection{Privacy Mechanisms: Context and Scope}
 \label{sec:privacy-overview}
 \label{sec:threat-models}
 \label{sec:differential-privacy}
@@ -958,105 +956,35 @@ empirical analysis of aggregation strategies under IID and non-IID
 conditions, offering a direct benchmark for the aggregation comparison
 conducted in Chapter~4.
 
-\subsection{Positioning of This Work}
-\label{sec:related-positioning}
-
-To the best of the authors' knowledge, no prior published work has
-applied federated learning to the molecular subtype classification
-of breast DCE-MRI using the publicly available Zenodo dataset
-\cite{alves2023breastmri} with the combination of
-class-imbalance correction through weighted sampling, progressive
-backbone unfreezing, and a systematic comparison of FedAvg and
-SCAFFOLD aggregation strategies under non-IID conditions adopted
-in this thesis.
-The present work therefore contributes an original experimental
-evaluation of cross-silo federated learning for a clinically
-significant breast DCE-MRI classification task under binary
-and four-class formulations under realistic non-IID conditions.
-
 
 % ============================================================
 \section{Problem Statement}
 \label{sec:problem-statement}
 % ============================================================
 
-\subsection{Research Questions}
-\label{sec:ps-motivation}
-\label{sec:ps-research-questions}
+Three concrete challenges motivate the work presented
+in this thesis.
 
-This thesis is organised around three research questions that progress from
-centralised baseline characterisation to federated optimisation:
+\textbf{Problem 1 --- Data fragmentation under legal constraints.}
+Breast DCE-MRI molecular subtype datasets are held by
+individual institutions and cannot be pooled without
+violating data protection regulations.
+No single institution holds enough patients to train a
+robust multi-class classifier for all four subtypes.
 
-\begin{enumerate}
+\textbf{Problem 2 --- Severe class imbalance.}
+Molecular subtype prevalence is highly unequal in any
+realistic clinical population.
+Standard federated averaging of locally biased gradients
+amplifies this imbalance, collapsing the global model
+toward majority-class prediction.
 
-  \item[\textbf{RQ1.}] What classification performance ceiling does a centralised
-  deep learning system achieve on breast DCE-MRI molecular subtype prediction
-  under severe class imbalance, and how does a clinically motivated binary
-  reformulation address the data scarcity constraint imposed by rare subtypes?
-
-  \item[\textbf{RQ2.}] How much classification performance is lost when training
-  is distributed across three simulated hospital clients with non-IID data
-  partitioning under the FedAvg aggregation strategy, and what is the
-  quantitative privacy-performance trade-off?
-
-  \item[\textbf{RQ3.}] Can SCAFFOLD's control-variate correction mechanism reduce
-  the convergence gap caused by statistical heterogeneity in a three-hospital
-  federated breast MRI setting, and to what extent does convergence-aware
-  aggregation recover performance lost to client drift?
-
-\end{enumerate}
-
-
-\subsection{Formal Hypotheses}
-\label{sec:ps-hypotheses}
-
-The three research questions yield the following testable hypotheses:
-
-\begin{enumerate}
-
-  \item[\textbf{H1.}] A ConvNeXt-Nano backbone with Gated Attention MIL, trained
-  with LDAM loss and ASAM optimisation, achieves higher macro F1 on the four-class
-  centralised task than a standard cross-entropy baseline, because the combination
-  of margin-based loss and sharpness-aware minimisation better handles the
-  10.4:1 class imbalance present in the dataset.
-
-  \item[\textbf{H2.}] FedAvg aggregation across three non-IID hospital clients
-  incurs a performance penalty relative to the centralised baseline, because local
-  gradient updates on heterogeneous data distributions cause client drift that is
-  not corrected by simple weighted averaging.
-
-  \item[\textbf{H3.}] SCAFFOLD's control-variate mechanism reduces the client
-  drift identified in~H2 and narrows the centralised-federated performance gap,
-  because it explicitly estimates and corrects the client-specific gradient bias
-  at each communication round.
-
-\end{enumerate}
-
-
-\subsection{Thesis Contributions}
-\label{sec:ps-contributions}
-
-This thesis makes the following original contributions:
-
-\begin{enumerate}
-
-  \item[\textbf{C1.}] A three-stage centralised training pipeline (LDAM + ASAM +
-  SWA + cRT) for breast DCE-MRI molecular subtype classification under severe class
-  imbalance, evaluated over five-fold cross-validation with patient-level
-  stratification.
-
-  \item[\textbf{C2.}] A clinically motivated binary reformulation of the molecular
-  subtype task mapping to the hormone therapy eligibility decision boundary,
-  demonstrated to be more tractable under federated constraints than the four-class
-  formulation.
-
-  \item[\textbf{C3.}] An empirical comparison of FedAvg and SCAFFOLD under
-  Dirichlet non-IID partitioning ($\alpha \in \{0.5,\, 100\}$) on the publicly
-  available breast DCE-MRI dataset \cite{alves2023breastmri}, including a novel
-  FedSCRT federated classifier retraining stage that closes 84\% of the
-  centralised-federated performance gap.
-
-\end{enumerate}
+\textbf{Problem 3 --- Non-IID client heterogeneity.}
+When each hospital serves a different patient population,
+the local gradient directions diverge across clients.
+Existing drift-correction strategies address heterogeneity
+in data distribution but do not account for the additional
+distortion introduced by within-client class imbalance.
 
 
 % ============================================================

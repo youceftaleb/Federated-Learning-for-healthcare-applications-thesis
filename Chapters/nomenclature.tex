@@ -116,6 +116,12 @@ in which it is first introduced.
   $S$
     & Number of axial slices per volume ($S = 64$)
     & §\ref{sec:slice-extraction} \\
+  GELU
+    & Gaussian Error Linear Unit:
+      $\mathrm{GELU}(x) = x\,\Phi(x)$, where $\Phi$ is
+      the standard normal CDF.
+      Used in the MIL projection layer.
+    & §\ref{eq:proj} \\
   \hline
 \end{tabular}
 \end{center}
@@ -141,6 +147,11 @@ in which it is first introduced.
   $s$
     & LDAM logit scaling factor ($s = 15$)
     & §\ref{eq:ldam-loss} \\
+  SGD
+    & Stochastic Gradient Descent: iterative
+      optimisation updating parameters by the gradient
+      of the loss on a random data subset.
+    & §\ref{sec:stage1} \\
   $\rho$
     & ASAM adaptive perturbation radius ($\rho = 0.05$)
     & §\ref{sec:stage2} \\
