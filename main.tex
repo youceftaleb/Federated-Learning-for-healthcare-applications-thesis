@@ -155,9 +155,15 @@
 \renewcommand{\listfigurename}{List of Figures}
 \renewcommand{\listtablename}{List of Tables}
 
+% NOTE: Arabic dedication requires arabluatex or
+% polyglossia with Arabic. If compilation fails,
+% replace \begin{Arabic}...\end{Arabic} with
+% a transliterated version or a PNG image.
+% Contact supervisor for font configuration.
+\include{Chapters/dedication}
 \include{Chapters/acknowledgements}
-\include{Chapters/resume}
 \include{Chapters/abstract}
+\include{Chapters/resume}
 \hypersetup{hidelinks}
 \tableofcontents
 \include{Chapters/acronyms}

@@ -45,7 +45,7 @@ PyTorch model.
   \centering
   \includegraphics[width=0.85\linewidth]%
     {figures/appendix/FedMRI_platform.png}
-  \caption{High-level actor diagram of the FedMRI platform.
+  \caption[FedMRI platform actor diagram]{High-level actor diagram of the FedMRI platform.
     Three user roles interact with the central application:
     the Doctor (FL participant, uploads scans and
     contributes to federation training),
@@ -147,7 +147,7 @@ Patient portal, and Researcher portal.
   \centering
   \includegraphics[width=0.72\linewidth]%
     {figures/appendix/fedmri_use_case_diagram 1.png}
-  \caption{UML use case diagram for the FedMRI platform.
+  \caption[FedMRI use case diagram]{UML use case diagram for the FedMRI platform.
     The Doctor actor interacts with the system as an FL
     participant: uploading scans triggers both immediate
     inference and an asynchronous FL training round.
@@ -241,7 +241,7 @@ analysis session.
   \centering
   \includegraphics[width=0.72\linewidth]%
     {figures/appendix/FedMRI___Sequence_Patient_MRI_Upload.png}
-  \caption{Sequence diagram for the patient MRI upload flow.
+  \caption[Patient MRI upload sequence]{Sequence diagram for the patient MRI upload flow.
     The patient's scan is processed by the same FastAPI ML
     service as the doctor's scan, but the resulting case
     record carries \texttt{scope=PATIENT}, isolating it
@@ -270,7 +270,7 @@ data, never row-level patient data.
   \centering
   \includegraphics[width=0.72\linewidth]%
     {figures/appendix/FedMRI___Sequence_Researcher_Dataset_Access.png}
-  \caption{Sequence diagram for the researcher dataset
+  \caption[Researcher dataset access sequence]{Sequence diagram for the researcher dataset
     access flow.
     The researcher requests dataset statistics and model
     metrics via the NestJS API.
@@ -373,7 +373,7 @@ any laptop without GPU hardware.
   \centering
   \includegraphics[width=0.70\linewidth]%
     {figures/appendix/Mock_Dev__Single_Machine__Docker_Compose.png}
-  \caption{Development deployment on a single machine
+  \caption[Single-machine development deployment]{Development deployment on a single machine
     via Docker Compose.
     Five containers: Next.js web frontend (:3000),
     NestJS API (:3001), FastAPI ML service (:8001,
@@ -415,7 +415,7 @@ Chapter~2.
   \centering
   \includegraphics[width=0.90\linewidth]%
     {figures/appendix/Production__Multiple_VMs.png}
-  \caption{Production deployment across six virtual machines.
+  \caption[Production multi-VM deployment]{Production deployment across six virtual machines.
     VM~1 (app server): Nginx + Next.js + NestJS API.
     VM~2 (ML server, GPU required): FastAPI inference
     with real FedSCRT checkpoint.
@@ -479,7 +479,7 @@ layers and their enforcement mechanisms.
 
 \begin{table}[htbp]
   \centering
-  \caption{Privacy guarantee layers in the FedMRI
+  \caption[FedMRI privacy guarantee layers]{Privacy guarantee layers in the FedMRI
     platform. Each layer independently enforces the
     data sovereignty constraint; all four must be
     bypassed simultaneously to violate the guarantee.}
@@ -582,7 +582,7 @@ running with \texttt{INFERENCE\_MODE=mock} and
     \caption{Sign-up screen.}
     \label{fig:ss-signup}
   \end{subfigure}
-  \caption{Authentication screens. Users register with a role
+  \caption[Authentication screens]{Authentication screens. Users register with a role
     (Doctor, Patient, or Researcher) and a hospital affiliation.
     JWT tokens are issued on successful login and validated by
     NestJS middleware on every subsequent request.}
@@ -595,7 +595,7 @@ running with \texttt{INFERENCE\_MODE=mock} and
   \centering
   \includegraphics[width=0.90\linewidth]%
     {figures/appendix/app-scrennshots/Doctor_Portal_Dashboard.png}
-  \caption{Doctor portal --- Dashboard.
+  \caption[Doctor portal --- Dashboard]{Doctor portal --- Dashboard.
     Displays the hospital's aggregated case statistics,
     recent scan activity, and the current federated model
     version.
@@ -610,7 +610,7 @@ running with \texttt{INFERENCE\_MODE=mock} and
   \centering
   \includegraphics[width=0.90\linewidth]%
     {figures/appendix/app-scrennshots/New_MRI_Scan_Upload_Analysis_Flow.png}
-  \caption{Doctor portal --- Scan Upload and Analysis.
+  \caption[Doctor portal --- Scan Upload and Analysis]{Doctor portal --- Scan Upload and Analysis.
     The doctor uploads a \texttt{.mha} or \texttt{.nii}
     MRI volume; the FastAPI ML service returns a binary
     subtype prediction (Luminal / Non-Luminal),
@@ -625,7 +625,7 @@ running with \texttt{INFERENCE\_MODE=mock} and
   \centering
   \includegraphics[width=0.90\linewidth]%
     {figures/appendix/app-scrennshots/Medical_History_Archive.png}
-  \caption{Doctor portal --- Medical History Archive.
+  \caption[Doctor portal --- Medical History Archive]{Doctor portal --- Medical History Archive.
     Lists all cases submitted by the current hospital,
     with subtype prediction, confidence, submission date,
     and validation status.
@@ -639,7 +639,7 @@ running with \texttt{INFERENCE\_MODE=mock} and
   \centering
   \includegraphics[width=0.90\linewidth]%
     {figures/appendix/app-scrennshots/Doctor_Portal_Documentation.png}
-  \caption{Doctor portal --- Documentation.
+  \caption[Doctor portal --- Documentation]{Doctor portal --- Documentation.
     Provides inline reference documentation for the
     FedSCRT model architecture, the federated training
     protocol, and the interpretation of attention heatmaps.
@@ -654,7 +654,7 @@ running with \texttt{INFERENCE\_MODE=mock} and
   \centering
   \includegraphics[width=0.90\linewidth]%
     {figures/appendix/app-scrennshots/Ask_AI_Patient_Chat.png}
-  \caption{Patient portal --- AI Assistant chat.
+  \caption[Patient portal --- AI Assistant chat]{Patient portal --- AI Assistant chat.
     The patient submits a natural-language question about
     their scan result.
     Responses are streamed from the Anthropic Claude API
@@ -682,7 +682,7 @@ running with \texttt{INFERENCE\_MODE=mock} and
     \caption{Dataset ready confirmation.}
     \label{fig:ss-dataset-ready}
   \end{subfigure}
-  \caption{Researcher portal --- Dataset Management.
+  \caption[Researcher portal --- Dataset Management]{Researcher portal --- Dataset Management.
     Left: the researcher inspects per-hospital case counts,
     class distributions, and partition statistics.
     Right: confirmation banner indicating that the dataset
@@ -707,7 +707,7 @@ running with \texttt{INFERENCE\_MODE=mock} and
     \caption{FL Insights.}
     \label{fig:ss-fl-insights}
   \end{subfigure}
-  \caption{Researcher portal --- Model Performance and FL Insights.
+  \caption[Researcher portal --- Model Performance \& FL Insights]{Researcher portal --- Model Performance and FL Insights.
     Left: macro F1, AUC, and per-class precision/recall
     curves across federated rounds.
     Right: FL Insights panel showing per-hospital weight
@@ -720,7 +720,7 @@ running with \texttt{INFERENCE\_MODE=mock} and
   \centering
   \includegraphics[width=0.90\linewidth]%
     {figures/appendix/app-scrennshots/Researcher_Portal_System_Logs.png}
-  \caption{Researcher portal --- System Logs.
+  \caption[Researcher portal --- System Logs]{Researcher portal --- System Logs.
     Chronological event log for all FL round lifecycle
     events: round start, client notifications, weight
     delta reception, aggregation, and round completion.
@@ -734,7 +734,7 @@ running with \texttt{INFERENCE\_MODE=mock} and
   \centering
   \includegraphics[width=0.90\linewidth]%
     {figures/appendix/app-scrennshots/Html_Body.png}
-  \caption{Application shell --- HTML body structure.
+  \caption[Application shell --- HTML body structure]{Application shell --- HTML body structure.
     Browser developer tools view of the rendered DOM root,
     illustrating the Next.js App Router hydration structure
     and the Tailwind CSS utility class pattern applied

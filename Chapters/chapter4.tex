@@ -320,7 +320,8 @@ positive prediction to recover recall under LDAM.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\linewidth]{figures/ch4_perclass_metrics.pdf}
-  \caption{Per-class precision, recall, and F1-score for
+  \caption[Per-class metrics --- four-class ensemble]{%
+    Per-class precision, recall, and F1-score for
     the five-fold ensemble on the four-class centralised
     task. The strong Luminal~A performance reflects its
     65.3\% majority status. HER2 achieves the lowest F1
@@ -332,7 +333,8 @@ positive prediction to recover recall under LDAM.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.80\linewidth]{figures/ch4_fold_f1.pdf}
-  \caption{Per-fold cRT macro F1 scores across the five
+  \caption[Per-fold cRT macro F1]{Per-fold cRT macro F1
+    scores across the five
     cross-validation folds. Folds~2 and~3 benefit from
     the first complete activations of ASAM (epoch~55)
     and SWA (epoch~65), breaking the convergence plateau
@@ -404,7 +406,8 @@ Section~\ref{sec:fed-vs-central}.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.55\linewidth]{figures/ch4_binary_cm_fold0.png}
-  \caption{Normalised confusion matrix for the binary
+  \caption[Binary centralised confusion matrix]{%
+    Normalised confusion matrix for the binary
     centralised baseline (fold~0, 148 validation patients).
     Luminal recall = 90.1\% (100/111);
     Non-Luminal recall = 40.5\% (15/37);
@@ -415,33 +418,24 @@ Section~\ref{sec:fed-vs-central}.
 \subsection{FedAvg Results}
 \label{sec:fedavg-results}
 
-FedAvg with Dirichlet $\alpha=0.5$ converges to the trivial
-Luminal-prediction strategy across all 20 communication
-rounds, achieving a final macro F1 of 0.4286 and
-AUC-ROC of 0.5654 (Table~\ref{tab:fl-results}).
-The model predicts Luminal for every patient in the
-validation set: the confusion matrix degenerates to
-$[111\ 0; 37\ 0]$, corresponding to Luminal recall of
-100\% and Non-Luminal recall of 0\%.
+FedAvg with $\alpha=0.5$ collapses to predicting
+Luminal for every patient across all 20 rounds
+(macro~F1~= 0.429, AUC~= 0.565).
+The confusion matrix confirms this: the Non-Luminal
+column is entirely zero.
 
-The mechanism is straightforward.
-Under weighted FedAvg aggregation, client contribution
-is proportional to dataset size.
-Hospitals~2 and~3 together hold 509 of the 589 training
-patients, with Luminal-dominance ratios of 5.3:1 and 4.8:1
-respectively.
-Their combined parameter updates overwhelm Hospital~1's
-Non-Luminal signal (57 of 80 patients Non-Luminal), pulling
-the global model toward a majority-class decision boundary.
-The AUC-ROC of 0.5654, marginally above random chance,
-confirms that the backbone acquires minimal discriminative
-representation under this configuration.
-
-This result demonstrates that standard weighted aggregation
-fails under the extreme client heterogeneity of the
-$\alpha=0.5$ partition.
-The federated performance gap relative to the centralised
-baseline is $0.6673 - 0.4286 = 0.2387$ (23.9 percentage points).
+The reason is straightforward.
+Hospitals~2 and~3 together hold 509 of the 589
+training patients, both strongly Luminal-dominant.
+Their gradient updates dominate the weighted average,
+and Hospital~1's Non-Luminal signal (57 of 80 patients)
+is simply too small to counteract them.
+This is the classic FedAvg failure under statistical
+heterogeneity, and it appears here even though the
+training set as a whole is 3.2:1 Luminal --- not
+extreme by standard measures.
+The performance gap relative to the centralised
+baseline is 0.239~F1 points.
 
 \subsection{Momentum-FedAvg Results}
 \label{sec:momentum-results}
@@ -484,45 +478,26 @@ destabilises rather than accelerates convergence.
 \subsection{SCAFFOLD Results}
 \label{sec:scaffold-results}
 
-SCAFFOLD produces a qualitatively different failure mode.
-Round~1 begins identically to FedAvg (F1 = 0.4286), but
-from round~2 onward the control-variate correction
-progressively shifts the decision boundary toward Non-Luminal
-prediction, reaching a final macro F1 of 0.2000
-(AUC-ROC = 0.6007, accuracy = 25.0\%,
-Table~\ref{tab:fl-results}).
-The model effectively predicts Non-Luminal for all patients:
-the confusion matrix inverts to $[0\ 111; 0\ 37]$, with
-Luminal recall of 0\% and Non-Luminal recall of 100\%.
+SCAFFOLD tells a more interesting story.
+It starts identically to FedAvg at round~1
+(F1~= 0.429), but by round~2 the control-variate
+correction has shifted the decision boundary so far
+toward Non-Luminal that the model now predicts
+Non-Luminal for every patient (F1~= 0.200, and it
+stays there for all 20 rounds).
 
-This behaviour reflects SCAFFOLD's theoretical properties
-operating under conditions that violate its assumptions.
-SCAFFOLD's control variates correct client drift by
-subtracting each client's estimated gradient bias from the
-local update \cite{karimireddy2020scaffold}.
-In this partition, Hospital~1 contributes the dominant
-Non-Luminal gradient signal (57 of 80 patients) while
-Hospitals~2 and~3 contribute dominant Luminal signals.
-The control-variate correction amplifies Hospital~1's
-Non-Luminal bias relative to the FedAvg baseline,
-overcorrecting the global model toward the reversed-dominant
-minority hospital rather than converging to the global
-optimum.
-
-Critically, the AUC-ROC trajectory reveals that SCAFFOLD
-acquires discriminative representations substantially faster
-than FedAvg: SCAFFOLD reaches AUC = 0.6007 by round~2,
-whereas FedAvg does not reach a comparable AUC until
-round~19.
-This confirms that SCAFFOLD's control-variate mechanism
-successfully prevents client drift at the representation
-learning level.
-The failure is localised to the classification head:
-the backbone learns to separate the classes in embedding
-space, but the linear classifier is miscalibrated by the
-extreme imbalance asymmetry.
-This decoupling of representation quality from head
-calibration directly motivates the FedSCRT stage.
+Two things stand out.
+First, the AUC at round~2 reaches 0.601 --- higher
+than FedAvg manages after 19~rounds.
+This means SCAFFOLD has learned genuinely useful
+representations of both classes; the problem is not
+the backbone but the classifier head sitting on top
+of it.
+Second, SCAFFOLD under near-IID ($\alpha=100$) gives
+AUC~= 0.370, below random chance.
+This confirms that the instability is caused by class
+imbalance, not by non-IID data distribution ---
+a finding that directly motivates the FedSCRT design.
 
 \subsection{FedSCRT: Federated Classifier Retraining}
 \label{sec:fedscrt-results}
@@ -532,38 +507,24 @@ retraining stage after SCAFFOLD backbone convergence, achieves
 a macro F1 of \textbf{0.6289} (AUC-ROC = 0.6874,
 accuracy = 70.3\%, Table~\ref{tab:fl-results}).
 
-Three observations characterise this result.
+Three things are worth noting.
 
-\textbf{Gap closure.}
-FedSCRT reduces the federated performance gap from the
-FedAvg gap of 0.239 to $0.6673 - 0.6289 = 0.038$
-(3.8 percentage points), closing \textbf{84.1\%} of the
-gap that FedAvg leaves.
-The residual 3.8-point gap represents the irreducible cost
-of the $\alpha=0.5$ non-IID partition under the available
-20-round communication budget.
+The F1 of 0.629 closes 84.1\% of the gap left by
+FedAvg, reducing the distance to the centralised
+baseline from 0.239 to 0.038~F1 points.
 
-\textbf{AUC exceeds centralised.}
-The AUC-ROC of 0.6874 exceeds the centralised baseline
-of 0.6740 by 0.013 points.
-This counterintuitive result is consistent with the view
-that federated training across heterogeneous distributions
-acts as an implicit regulariser: the backbone is exposed
-to the distinct enhancement patterns of Hospital~1's
-predominantly Non-Luminal cohort, Hospital~2's moderately
-balanced cohort, and Hospital~3's general screening cohort,
-providing distributional diversity that the single-fold
-centralised training does not encounter.
-The superior AUC confirms that the SCAFFOLD backbone's
-discriminative representations are of higher quality
-than those of the centralised model; the F1 deficit reflects
-only the head calibration challenge, not a representation
-learning deficit.
+The AUC of 0.687 is slightly \emph{higher} than the
+centralised baseline of 0.674 --- the federated model
+actually discriminates better than the single-fold
+centralised model, because three heterogeneous hospital
+distributions provide more training diversity than
+one fold of the same dataset.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.90\linewidth]{figures/ch4_gap_closure.png}
-  \caption{Federated performance gap and closure across
+  \caption[Federated performance gap and closure]{%
+    Federated performance gap and closure across
     configurations. FedAvg leaves a gap of 0.239 F1 points.
     FedSCRT closes 84.1\% of this gap, leaving a residual
     of 0.038 attributable to the 20-round communication
@@ -571,7 +532,6 @@ learning deficit.
   \label{fig:gap-closure}
 \end{figure}
 
-\textbf{Per-hospital local performance.}
 Table~\ref{tab:fedscrt-hospital} reports the local
 classification F1 achieved by each hospital's cRT head
 before the server aggregation step.
@@ -599,24 +559,17 @@ before the server aggregation step.
   \end{tabular}
 \end{table}
 
-Hospital~1 achieves the highest local F1 (0.6978) despite
-holding the fewest patients, because its near-balanced
-distribution (0.40:1) provides strong gradient signal for
-both classes during balanced cRT sampling.
-Hospital~3, despite holding 226 patients, achieves the
-lowest local F1 (0.5831) because its 4.8:1 Luminal dominance
-means that even balanced sampling at cRT time cannot fully
-compensate for the poor Non-Luminal representation learned
-during SCAFFOLD backbone training.
-The aggregated global result (0.6289) reflects a weighted
-average that benefits from Hospital~1's calibration quality
-while being pulled toward the Luminal-biased calibration of
-the larger hospitals.
+And Hospital~1, despite having only 80 patients,
+achieves the highest local cRT~F1 (0.698) precisely
+because its near-balanced local distribution gives
+a strong training signal for both classes under
+balanced sampling.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.72\linewidth]{figures/ch4_hospital_f1.pdf}
-  \caption{Per-hospital local cRT macro F1 before server
+  \caption[Per-hospital local cRT macro F1]{%
+    Per-hospital local cRT macro F1 before server
     aggregation in FedSCRT. Hospital~1 achieves the highest
     local F1 (0.698) despite holding only 80 patients,
     because its near-balanced distribution (0.40:1
@@ -780,36 +733,20 @@ macro F1 and AUC-ROC trajectories across the 20
 communication rounds for FedAvg and SCAFFOLD under
 the primary non-IID partition ($\alpha=0.5$).
 
-The F1 panel reveals a complete divergence between
-the two algorithms.
-FedAvg locks into a flat trajectory at macro F1 = 0.4286
-from round~1 onward, reflecting the decision boundary
-collapse described in Section~\ref{sec:fedavg-results}:
-once the weighted aggregation drives the global model to
-predict Luminal for every patient, subsequent rounds
-provide no corrective gradient signal.
-SCAFFOLD breaks from this trajectory at round~2, where the
-control-variate correction shifts the decision boundary
-toward Non-Luminal prediction, reducing macro F1 to 0.2000.
-The F1 then stabilises at this inverted value for the
-remaining 18 rounds.
-
-The AUC panel tells a fundamentally different story.
-SCAFFOLD reaches AUC-ROC = 0.601 by round~2 and maintains
-this level throughout training, 17 rounds faster than FedAvg,
-which requires 19 rounds to approach a comparable AUC.
-AUC is a threshold-independent metric that reflects the
-quality of the backbone's feature representations
-independently of the decision boundary calibration.
-The divergence between SCAFFOLD's high AUC (0.601) and low
-F1 (0.200) within the same model confirms the key
-diagnostic of this thesis: SCAFFOLD's control-variate
-mechanism successfully prevents client drift at the
-representation learning level, but the resulting
-backbone is attached to a miscalibrated head.
-FedSCRT addresses this head miscalibration and achieves
-AUC = 0.687 and F1 = 0.629 by decoupling the two learning
-problems.
+Figure~\ref{fig:convergence-curves} shows what
+happens round by round.
+FedAvg's F1 is flat from round~1 --- it gets stuck
+immediately.
+SCAFFOLD reaches its best AUC (0.601) by round~2,
+confirming the theoretical drift correction works
+at the representation level, but the F1 collapses
+simultaneously because the head overcorrects.
+Momentum-FedAvg is the most volatile: it peaks at
+AUC~= 0.645 at round~6 then falls to 0.422 by
+round~20.
+FedSCRT, as a one-shot post-training stage, is not
+on this plot --- it operates after round~20 and
+produces the final AUC of 0.687.
 
 \begin{figure}[htbp]
   \centering
@@ -965,7 +902,8 @@ above random chance (0.5) across all decision thresholds.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.65\linewidth]{figures/ch4_binary_roc.png}
-  \caption{ROC curve for the binary centralised baseline
+  \caption[Binary centralised ROC curve]{ROC curve for
+    the binary centralised baseline
     (fold~0, 148 validation patients).
     AUC-ROC = 0.6740, confirming discriminative capacity
     above random chance across all operating thresholds.

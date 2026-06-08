@@ -1,4 +1,65 @@
+% ============================================================
+%  resume.tex — Résumé en français
+% ============================================================
 \chapter*{Résumé}
 \addcontentsline{toc}{chapter}{Résumé}
 
- 
+La classification des sous-types moléculaires du cancer
+du sein à partir de l'IRM dynamique avec contraste
+(DCE-IRM) est une tâche cliniquement importante~: le
+sous-type détermine si une patiente peut bénéficier d'une
+hormonothérapie ou nécessite une chimiothérapie.
+L'entraînement d'un classifieur automatique se heurte
+cependant à plusieurs obstacles concrets~: un seul hôpital
+dispose rarement de plus de 800 patientes, le déséquilibre
+entre sous-types atteint 10~pour~1, et les réglementations
+de protection des données --- dont la loi algérienne 18-07
+--- empêchent les institutions de regrouper leurs archives
+d'imagerie.
+
+Ce travail étudie si l'apprentissage fédéré peut produire
+un classifieur utile dans ce contexte, sans qu'aucune
+donnée patient ne quitte son institution d'origine.
+L'étude est menée sur une cohorte publique de 737~patients
+(Hôpital Duke, Zenodo DOI~10.5281/zenodo.7956360) avec
+quatre sous-types~: Luminal~A, Luminal~B, HER2-enrichi
+et Triple-Négatif.
+
+Un pipeline d'entraînement local en trois étapes a été
+construit à partir de composants éprouvés dans la
+littérature~: un backbone ConvNeXt-Nano avec apprentissage
+multi-instance à attention gated (MIL) traite les volumes
+entiers sans masques de segmentation~; la perte LDAM,
+l'optimisation ASAM, la moyenne de poids stochastique
+(SWA) et le réentraînement du classifieur (cRT) corrigent
+le déséquilibre de classe à chaque étape.
+Ce pipeline atteint un macro~F1 de~0,342 (quatre classes)
+et 0,667 (binaire) sur le pli de validation.
+
+Pour l'expérience fédérée, trois clients hospitaliers
+simulés sont construits selon une partition de Dirichlet
+($\alpha = 0{,}5$).
+FedAvg s'effondre vers la classe majoritaire
+(macro~F1~= 0,429).
+L'algorithme proposé FedSCRT --- qui combine un backbone
+SCAFFOLD et un réentraînement fédéré du classifieur avec
+échantillonnage équilibré --- atteint un macro~F1 de~0,629
+et un AUC de~0,687, comblant 84,1~\% de l'écart de
+performance fédérée et dépassant l'AUC de référence
+centralisée.
+Un résultat théorique montre que l'échantillonnage équilibré
+rend le gradient du classifieur indépendant de la
+distribution locale des classes, et une expérience contrôlée
+de similarité cosinus sur trois hôpitaux artificiels le
+confirme~: les gradients équilibrés s'alignent sur l'objectif
+global ($\cos \geq 0,99$) quel que soit le préalable local,
+tandis que les gradients naturels dérivent vers la classe
+majoritaire, expliquant la robustesse de l'étape de
+réentraînement fédéré du classifieur face à l'hétérogénéité
+des distributions hospitalières.
+
+\vspace{1em}
+\noindent\textbf{Mots-clés~:} Apprentissage fédéré,
+IRM mammaire, classification moléculaire, déséquilibre
+de classes, FedSCRT, MIL à attention gated, LDAM,
+SCAFFOLD.

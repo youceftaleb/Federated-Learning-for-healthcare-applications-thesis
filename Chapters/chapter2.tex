@@ -65,7 +65,8 @@ by positioning the present contribution within the state of the art.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.88\linewidth]{figures/nguyen2022_fig1.png}
-  \caption{Network architecture and communication process for
+  \caption[FL in smart healthcare]{Network architecture
+    and communication process for
     federated learning in smart healthcare. Heterogeneous clients
     (hospital computers, mobile devices, IoMT sensors) each perform
     local computation on private data and upload model updates to
@@ -103,7 +104,8 @@ subtype distributions \cite{sheller2020federated,rieke2020future}.
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{figures/fig2_1_centralised_vs_federated.jpg}
-    \caption{Centralised versus federated learning. Left: raw patient data must
+    \caption[Centralised versus federated learning]{%
+      Centralised versus federated learning. Left: raw patient data must
       be transferred to a central server, violating data locality requirements.
       Right: only model parameters are exchanged; data remain at each institution
       \cite{mcmahan2017communication}.}
@@ -142,7 +144,8 @@ with the same feature space \cite{yang2019federated,kairouz2021advances}
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.85\linewidth]{figures/yang2019_fig2.png}
-  \caption{Horizontal versus vertical federated learning.
+  \caption[Horizontal versus vertical FL]{Horizontal
+    versus vertical federated learning.
     In horizontal FL (top), clients share the same feature space but hold
     disjoint patient populations; each institution contributes independent
     samples of the same measurements.
@@ -194,7 +197,8 @@ the server aggregates the updates:
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{figures/fig2_3_one_fl_round.jpg}
-    \caption{The four phases of one federated learning communication
+    \caption[One federated learning round]{The four
+      phases of one federated learning communication
       round (equation~\eqref{eq:fedavg-aggregation}). The server
       broadcasts $\mathbf{w}^{(t)}$, each client performs $E$ local
       SGD steps on $\mathcal{D}_k$, the resulting
@@ -316,7 +320,8 @@ specifically to correct this shortcoming.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.55\linewidth]{figures/mcmahan2017_algorithm1.png}
-  \caption{The FederatedAveraging (FedAvg) algorithm.
+  \caption[The FedAvg algorithm]{The FederatedAveraging
+    (FedAvg) algorithm.
     The server coordinates rounds and aggregates client updates;
     each client runs $E$ local epochs of SGD on its private dataset
     before returning updated parameters $\mathbf{w}_k^{(t+1)}$.
@@ -365,7 +370,8 @@ heterogeneity \cite{li2020fedprox}.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.80\linewidth]{figures/li2020_fedprox_convergence.png}
-  \caption{Effect of data heterogeneity on convergence for FedAvg
+  \caption[FedAvg versus FedProx convergence]{Effect of
+    data heterogeneity on convergence for FedAvg
     and FedProx across synthetic non-IID partitions.
     As the degree of statistical heterogeneity increases, FedAvg
     convergence degrades substantially, while the proximal
@@ -403,7 +409,8 @@ objective.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.78\linewidth]{figures/karimireddy2020_scaffold_drift.png}
-  \caption{Client drift in FedAvg illustrated for two clients with
+  \caption[Client drift in FedAvg]{Client drift in FedAvg
+    illustrated for two clients with
     heterogeneous data distributions.
     Each client's local SGD steps pull its model toward its own
     local optimum, and the weighted average of the two drifted
@@ -721,7 +728,7 @@ experimental study and are identified as a direction for future work.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figures/kaissis2020_fig1_privacy.png}
-  \caption{%
+  \caption[Privacy-preserving techniques in medical imaging AI]{%
     Schematic overview of the relationships between data, algorithms,
     actors, and privacy-preserving techniques in secure medical imaging AI.
     Federated learning, differential privacy, homomorphic encryption,
@@ -761,7 +768,7 @@ $\alpha \to \infty$ the distribution approaches IID.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figures/arbaoui2025_fig9_scales.png}
-  \caption{%
+  \caption[Cross-device versus cross-silo FL]{%
     Comparison of cross-device and cross-silo federation scales.
     In the cross-silo setting relevant to this thesis, clients are
     institutional machines with potentially large and heterogeneous datasets.
@@ -874,7 +881,8 @@ FedML, Substra, and PySyft are listed for completeness.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figures/beutel2022_flower_arch.png}
-  \caption{Core architecture of the Flower federated learning
+  \caption[Flower framework architecture]{Core architecture
+    of the Flower federated learning
     framework.
     The server-side \texttt{Strategy} object controls client
     selection, parameter initialisation, aggregation, and
