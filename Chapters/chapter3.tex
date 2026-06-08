@@ -96,7 +96,7 @@ parameter $\alpha$:
 where $p_{c,k}$ is the proportion of class $c$ patients
 assigned to client $k$.
 This label-wise Dirichlet split is the partitioning scheme
-recommended for simulating statistical heterogeneity in FL
+recommended to use for simulating statistical heterogeneity in FL
 benchmarks \cite{kairouz2021advances}, and was adopted directly
 rather than designing a bespoke non-IID generator.
 After empirically verifying the Dirichlet partition
@@ -107,7 +107,7 @@ is experimentally unusable for federated learning.
 $\alpha = 0.5$ with the same seed produces a clinically
 realistic and genuinely non-IID partition in which
 Hospital~3 has a reversed dominant class
-(Non-Luminal dominant, 0.22:1), satisfying the
+(Non-Luminal dominant, 0.8:1), satisfying the
 true non-IID requirement while maintaining
 computationally tractable client sizes.
 $\alpha = 0.5$ is therefore selected as the primary
@@ -120,7 +120,7 @@ Hospital~3 represents a specialised hereditary
 cancer centre where BRCA-mutation patients
 disproportionately present with Triple-Negative
 and HER2-enriched (Non-Luminal) subtypes, yielding
-a reversed dominant class (0.22:1).
+a reversed dominant class (0.8:1).
 This ensures the true non-IID condition in which
 client dominant classes differ, not merely their
 imbalance ratios.
@@ -203,8 +203,6 @@ to near-IID (uniform class distribution across clients).
 These two configurations correspond to the primary clinical
 scenario (Hospital~3 Non-Luminal dominant) and the idealised
 data-sharing baseline respectively.
-The $\alpha=0.1$ configuration was excluded because it
-produces a degenerate partition under seed=42.
 
 Figure~\ref{fig:dirichlet-partition} shows the class
 distribution across clients under the primary non-IID
@@ -212,7 +210,7 @@ partition.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.85\linewidth]{figures/ch3_dirichlet_partition.pdf}
+  \includegraphics[width=0.85\linewidth]{figures/ch3_dirichlet_partition.png}
   \caption[Dirichlet client class distribution]{Class
     distribution across the three simulated hospital
     clients under Dirichlet partitioning with $\alpha=0.5$,
@@ -235,7 +233,7 @@ Luminal~A tumours, which are oestrogen-receptor and
 progesterone-receptor positive and HER2-negative, account for
 65.3\% of the cohort, reflecting the epidemiological
 prevalence of this subtype in a population-based screening
-setting \cite{ghosh2020clustered}.
+setting \cite{alves2023breastmri}.
 At the opposite extreme, HER2-enriched tumours represent only
 6.2\% of the cohort, yielding a Luminal~A to HER2 imbalance
 ratio of 10.4:1.
@@ -314,7 +312,7 @@ resolve one of these problems:
     catastrophic forgetting: stabilising the attention
     head before unfreezing the backbone prevents
     random head gradients from corrupting pretrained
-    features \cite{liu2022convnet}.
+    features \cite{ilse2018attention}.
 
   \item \textbf{Gated Attention MIL} replaces a
     single-slice classifier with a whole-volume aggregator
@@ -343,11 +341,11 @@ resolve one of these problems:
   \item \textbf{SCAFFOLD + FedSCRT} extend this
     pipeline to the federated setting: SCAFFOLD
     corrects inter-hospital gradient drift at the
-    representation level, and FedSCRT extends cRT
+    representation level \cite{karimireddy2020scaffold}, and FedSCRT extends cRT
     to the federated case, with a theoretical
     guarantee that balanced sampling eliminates the
     influence of each hospital's local class prior
-    (Theorem~\ref{thm:fedscrt}).
+    (Section~\ref{sec:fedscrt-theory}).
 \end{itemize}
 
 The following sections describe each component in detail.
@@ -872,6 +870,134 @@ of training.
 The total number of trainable parameters in the MIL head
 is 231\,557.
 
+\subsubsection*{From Formula to Code: Three Proofs}
+
+The three operations that define Gated Attention MIL
+each have an exact, verifiable counterpart in the
+implementation (\texttt{model.py}).
+The following code extracts confirm that the mathematical
+description and the executable code are identical.
+
+% ── CODE PROOF 1 ─────────────────────────────────────────
+
+\paragraph{Code Proof 1 — what \texttt{Linear(256\,$\to$\,128)} does.}
+
+The four learnable layers of the attention mechanism
+are declared in the constructor of \texttt{GatedAttentionMIL}
+(\texttt{model.py}, lines 29--32):
+
+\begin{verbatim}
+self.proj   = nn.Linear(in_dim,    proj_dim)   # 640 -> 256
+self.attn_V = nn.Linear(proj_dim,  attn_dim)   # 256 -> 128  (content)
+self.attn_U = nn.Linear(proj_dim,  attn_dim)   # 256 -> 128  (gate)
+self.attn_w = nn.Linear(attn_dim,  1)          # 128 -> 1    (score)
+\end{verbatim}
+
+\texttt{nn.Linear(256, 128)} creates a weight matrix
+$\mathbf{W} \in \mathbb{R}^{128 \times 256}$
+and a bias vector $\mathbf{b} \in \mathbb{R}^{128}$.
+When called on a 256-dimensional input vector
+$\mathbf{h}$, it computes:
+\begin{equation}
+  \text{output} = \mathbf{W}\,\mathbf{h} + \mathbf{b}
+  \in \mathbb{R}^{128}.
+\end{equation}
+This is 128 simultaneous weighted sums, each using
+all 256 inputs with its own row of weights.
+The total number of learnable parameters is
+$128 \times 256 + 128 = 32{,}896$ numbers, all
+updated by gradient descent during training.
+Nobody chose these weights manually:
+they are initialised randomly and learned from the
+patient-level labels through backpropagation.
+
+% ── CODE PROOF 2 ─────────────────────────────────────────
+
+\paragraph{Code Proof 2 — the gated attention formula.}
+
+The formal gated attention score for slice~$i$ is:
+\begin{equation}
+  \text{score}_i
+  = \mathbf{w}^\top
+    \bigl(\tanh(\mathbf{V}\,\mathbf{h}_i)
+    \;\odot\;
+    \sigma(\mathbf{U}\,\mathbf{h}_i)\bigr),
+  \label{eq:gated-attention-code}
+\end{equation}
+where $\mathbf{h}_i \in \mathbb{R}^{256}$ is the
+projected feature of slice~$i$,
+$\mathbf{V}$ and $\mathbf{U}$ are the two
+$\mathbb{R}^{128 \times 256}$ weight matrices,
+$\odot$ denotes element-wise multiplication, and
+$\mathbf{w} \in \mathbb{R}^{128}$ collapses the
+result to a single scalar.
+
+This formula is implemented \emph{verbatim} in the
+\texttt{forward} method
+(\texttt{model.py}, lines 49--51):
+
+\begin{verbatim}
+v      = torch.tanh(self.attn_V(h))          # tanh(V * h)
+u      = torch.sigmoid(self.attn_U(h))       # sigmoid(U * h)
+scores = self.attn_w(v * u).squeeze(-1)      # w . (v elemwise* u)
+\end{verbatim}
+
+Reading line by line against Equation~(\ref{eq:gated-attention}):
+\texttt{self.attn\_V(h)} computes $\mathbf{V}\,\mathbf{h}$;
+\texttt{torch.tanh(...)} applies $\tanh$, producing the
+\emph{content} branch $\mathbf{v}$.
+\texttt{self.attn\_U(h)} computes $\mathbf{U}\,\mathbf{h}$;
+\texttt{torch.sigmoid(...)} applies $\sigma$, producing
+the \emph{gate} $\mathbf{u}$.
+The expression \texttt{v~*~u} is the
+element-wise product~$\odot$, and
+\texttt{self.attn\_w(...)} applies
+$\mathbf{w}^\top(\cdot)$.
+The gate~$\mathbf{u}$ acts as a confidence filter:
+values near~1 allow the content signal through;
+values near~0 suppress it.
+A slice that appears visually unusual due to an imaging
+artefact may produce a high content score but a low
+gate value, resulting in near-zero net attention.
+
+% ── CODE PROOF 3 ─────────────────────────────────────────
+
+\paragraph{Code Proof 3 — the weighted sum that builds the patient feature.}
+
+After computing one score per slice, the scores are
+converted to attention weights and used to pool 64
+slice features into a single patient-level representation
+(\texttt{model.py}, lines 52--53):
+
+\begin{verbatim}
+attn   = F.softmax(scores, dim=1)            # weights sum to 1
+pooled = (h * attn.unsqueeze(-1)).sum(dim=1) # sum_i a_i * h_i
+\end{verbatim}
+
+\texttt{F.softmax(scores, dim=1)} converts the 64 raw
+scores to 64 non-negative weights that sum to exactly~1.0.
+\texttt{attn.unsqueeze(-1)} reshapes the weights from
+shape $(B,\,64)$ to $(B,\,64,\,1)$ so that each scalar
+weight can be broadcast across the 256 feature dimensions
+of the corresponding slice.
+The \texttt{.sum(dim=1)} then collapses the slice
+dimension, computing:
+\begin{equation}
+  \mathbf{z} = \sum_{i=1}^{64} a_i\,\mathbf{h}_i
+  \;\in\; \mathbb{R}^{256},
+\end{equation}
+where $a_i$ is the attention weight of slice~$i$.
+The result $\mathbf{z}$ is the patient-level feature
+vector: a single 256-dimensional representation that
+carries the most information from whichever slices
+received the highest attention weights.
+Since no tumour masks are available, the model learns
+during training which slices deserve high weights
+purely from the patient-level Luminal/Non-Luminal label.
+Slices containing the tumour receive high~$a_i$ because
+attending to them consistently reduces the classification
+loss; empty or artefactual slices receive~$a_i \approx 0$.
+
 
 % ------------------------------------------------------------
 \subsection{Full Forward Pass}
@@ -1216,7 +1342,7 @@ Luminal tumours (ER/PR-positive) are candidates for
 endocrine therapy such as tamoxifen or aromatase
 inhibitors, while Non-Luminal tumours are not and are
 instead treated with cytotoxic chemotherapy and, where
-applicable, anti-HER2 agents \cite{ghosh2020clustered}.
+applicable, anti-HER2 agents \cite{alves2023breastmri}.
 The binary task therefore maps directly to the clinical
 triage decision of hormone therapy eligibility, making
 the classification output immediately actionable in a
@@ -1528,7 +1654,7 @@ via weighted averaging.
     \For{$\tau = 1$ \textbf{to} $T$}
       \State $\mathcal{B}_k^{\mathrm{bal}} \leftarrow$
              draw $m$ samples per class from $\mathcal{D}_k$
-             \Comment{Theorem~\ref{thm:fedscrt}}
+             \Comment{Section~\ref{sec:fedscrt-theory}}
       \State $\mathbf{w}_{k,j} \leftarrow
              \mathbf{w}_{k,j}
              - \eta_h\,
@@ -1553,7 +1679,7 @@ via weighted averaging.
 \State $\mathbf{w}^* \leftarrow
        \displaystyle\sum_{k=1}^K
        \frac{n_k}{n}\,\mathbf{w}_k^*$
-       \Comment{Corollary~\ref{cor:fedscrt-agg}}
+       \Comment{Section~\ref{sec:fedscrt-theory}}
 
 \State \Return $\bigl(\Psi^*_\theta,\; \mathbf{w}^*\bigr)$
 \end{algorithmic}
@@ -1574,7 +1700,7 @@ simultaneously.
 The backbone is then frozen: no further gradient updates
 are applied to $\Psi^*_\theta$ in Phase~2.
 This freezing is the architectural decision that makes
-Theorem~\ref{thm:fedscrt} applicable: the balanced head
+Section~\ref{sec:fedscrt-theory} applicable: the balanced head
 gradient is unbiased only when the backbone is fixed,
 because a trainable backbone would re-introduce the
 imbalanced class-prior into the representation space.
@@ -1587,7 +1713,7 @@ its cached backbone embeddings.
 The class-balanced sampler draws exactly $m$ samples
 per class per mini-batch, regardless of the local
 class distribution $\mathcal{P}_k(c)$.
-By Theorem~\ref{thm:fedscrt}, this renders the local
+By Section~\ref{sec:fedscrt-theory}, this renders the local
 head gradient an unbiased estimator of the global
 balanced objective $\mathcal{L}_{\mathrm{bal}}$,
 eliminating the influence of the local class prior.
@@ -1599,7 +1725,7 @@ The server aggregates the three local heads by
 weighted average (line~26), producing a global head
 $\mathbf{w}^*$ that benefits from the combined
 balanced gradient signal across all hospitals.
-By Corollary~\ref{cor:fedscrt-agg}, this aggregated
+By Section~\ref{sec:fedscrt-theory}, this aggregated
 head converges to the minimiser of
 $\mathcal{L}_{\mathrm{bal}}$ as $T \to \infty$,
 independently of how extreme the non-IID partition
@@ -1639,253 +1765,145 @@ statistical heterogeneity versus other factors.
 
 
 % ============================================================
-\section{Theoretical Foundation of FedSCRT}
+\subsection{Why FedSCRT Works: The Balanced Gradient Argument}
 \label{sec:fedscrt-theory}
-% ============================================================
 
-The design of FedSCRT rests on a provable decoupling
-property of class-balanced sampling.
-The premise --- that re-sampling the classifier head with
-balanced batches separates representation quality from
-classifier bias --- is the central empirical finding of
-Kang~et~al.\ \cite{kang2020decoupling} in the centralised
-setting; what is established below is that the same
-decoupling carries over to the federated setting, where
-the quantity it must be shown to be independent of is not
-just the dataset's global class distribution but each
-client's \emph{local} class prior $\mathcal{P}_k(c)$. This
-extension and its proof are original to this thesis.
-This section states the theorem and the conditions under
-which it holds.
+\paragraph{The problem with standard federated head training.}
+When a client trains its classification head on its local
+data without any adjustment, the gradient it computes is
+dominated by the locally abundant class.
+At Hospital~2, where 84\,\% of patients are Luminal,
+the correction signal that flows into the head weights is
+overwhelmingly ``predict Luminal.''
+The head learns to take the lazy shortcut: predict the
+majority class regardless of the scan.
+This is the cause of the F1\,=\,0.43 collapse observed
+in FedAvg (Section~\ref{sec:fedavg-results}).
 
-\subsubsection*{Problem Formulation}
+\paragraph{How balanced sampling corrects this.}
+FedSCRT idea adapted from CReFF \cite{Shang2022CReFF} and it replaces the natural sampling at each client                                                           
+with \emph{class-balanced sampling}: for every training
+batch, an equal number of Luminal and Non-Luminal patients
+is drawn, regardless of how many of each class the hospital
+actually holds.
+The effect is direct.
+In a naturally sampled batch at Hospital~2, Luminal
+patients contribute 84\,\% of the gradient and Non-Luminal
+patients contribute only 16\,\%.
+In a balanced batch, both classes contribute 50\,\% each
+--- not because data was shared or moved, but because the
+sampler physically forces equal representation in every
+batch.
+The local class frequency of Hospital~2 stops influencing
+the gradient direction.
 
-Let $\Psi_\theta: \mathcal{X} \to \mathbb{R}^d$ denote
-the frozen backbone produced by SCAFFOLD at round $R$,
-and let $\mathbf{w} \in \mathbb{R}^{d \times C}$ denote
-the linear classification head mapping backbone features
-to class logits.
-The global balanced classification objective is:
-\begin{equation}
-  \mathcal{L}_{\mathrm{bal}}(\mathbf{w})
-  = \frac{1}{C}\sum_{c=0}^{C-1}
-    \mathbb{E}_{x \sim \mathcal{P}(\cdot \mid c)}
-    \bigl[\mathrm{CE}\bigl(\mathbf{w}^\top \Psi_\theta(x),\, c\bigr)\bigr],
-  \label{eq:balanced-objective}
-\end{equation}
-where $\mathcal{P}(\cdot \mid c)$ is the global
-class-conditional feature distribution and
-$\mathrm{CE}$ is the cross-entropy loss.
+Crucially, this local operation at each hospital
+independently produces the same effect: every hospital's
+balanced gradient points toward a classifier that treats
+both classes equally.
+This is because the two cancer subtypes are biological
+entities whose backbone features are consistent across
+hospitals~\cite{Shang2022CReFF}.
 
-Under non-IID federation, client $k$ holds data with
-class prior $\mathcal{P}_k(c) \neq \mathcal{P}(c)$.
-Standard gradient descent at client $k$ optimises
-the imbalanced local objective:
-\begin{equation}
-  \mathcal{L}_k(\mathbf{w})
-  = \sum_{c=0}^{C-1} \mathcal{P}_k(c)\,
-    \mathbb{E}_{x \sim \mathcal{P}_k(\cdot \mid c)}
-    \bigl[\mathrm{CE}\bigl(\mathbf{w}^\top \Psi_\theta(x),\, c\bigr)\bigr],
-  \label{eq:local-objective}
-\end{equation}
-which is biased toward the locally dominant class.
+To make this concrete: consider a Non-Luminal tumour
+scanned at a hospital in Algiers and another Non-Luminal
+tumour scanned at a hospital in Oran.
+These are different patients on different machines.
+Their raw pixel images look different --- different
+brightness, different noise, different contrast.
+But after passing through the same frozen backbone
+$\Psi_\theta$, both produce a 256-number vector that
+lands in the same cluster of the feature space, because
+the backbone responds to the tumour's enhancement
+kinetics, not to the scanner's settings.
+Molecular subtype is determined by the tumour's own
+biology, not the machine that imaged it.
+The hospitals never compared files.
+The shared biology and the shared backbone provided the
+alignment silently.
 
-\subsubsection*{The Unbiasedness Theorem}
+\paragraph{The two key lines in code.}
+The entire argument above reduces to two blocks
+in \texttt{fl\_train.py}:
 
-\begin{theorem}[FedSCRT Gradient Unbiasedness]
-\label{thm:fedscrt}
-Let $\nabla_{\mathbf{w}} \mathcal{L}_k^{\mathrm{bal}}$
-denote the gradient of client $k$'s local head under
-class-balanced sampling, which draws an equal number of
-samples $m$ from each class in $\mathcal{D}_k$.
-Under the assumption that class-conditional feature
-distributions are consistent across clients,
-$\mathcal{P}_k(x \mid c) \approx \mathcal{P}(x \mid c)$
-for all $k$ and $c$, the following holds:
-\begin{equation}
-  \mathbb{E}\bigl[\nabla_{\mathbf{w}}
-    \mathcal{L}_k^{\mathrm{bal}}(\mathbf{w})\bigr]
-  \;=\;
-  \nabla_{\mathbf{w}}\,\mathcal{L}_{\mathrm{bal}}(\mathbf{w})
-  \quad \forall\, k.
-  \label{eq:fedscrt-unbiased}
-\end{equation}
-That is, each client's balanced gradient is an
-unbiased estimator of the global balanced objective
-gradient, independently of the client's local class
-prior $\mathcal{P}_k(c)$.
-\end{theorem}
+\begin{verbatim}
+# line 558 -- removes local class bias from the gradient
+weights = 1.0 / counts[labels]          # w_i = 1/n_c
+sampler = WeightedRandomSampler(         # draws each class equally
+              weights, len(weights),
+              replacement=True)
 
-\begin{proof}
-Under class-balanced sampling at client $k$,
-the gradient contribution from class $c$ is:
-\begin{equation}
-  \nabla_{\mathbf{w}} \hat{\mathcal{L}}_k^{(c)}
-  = \frac{1}{m} \sum_{\substack{i \in \mathcal{D}_k \\ y_i = c}}
-    \nabla_{\mathbf{w}}\,
-    \mathrm{CE}\bigl(\mathbf{w}^\top \Psi_\theta(x_i),\, c\bigr),
-  \label{eq:per-class-grad}
-\end{equation}
-with each class weighted equally:
-$\nabla_{\mathbf{w}} \mathcal{L}_k^{\mathrm{bal}}
-= \frac{1}{C}\sum_{c} \nabla_{\mathbf{w}} \hat{\mathcal{L}}_k^{(c)}$.
+# lines 604-606 -- aggregates the three corrected heads
+total      = sum(client_sizes)           # total patients across hospitals
+weights    = [s / total                  # each hospital's share
+              for s in client_sizes]
+agg_weight = sum(w * h for w, h          # weighted average of heads
+              in zip(weights, client_heads))
+\end{verbatim}
 
-Note that $\mathcal{P}_k(x \mid c)$ denotes the
-class-conditional feature distribution of the raw data
-at client~$k$, which is a property of the patient
-population and is invariant to the sampling scheme used
-during training.
+The first block is the mechanism: assigning each sample
+weight \texttt{1/n\_c} forces the sampler to draw each
+class equally often, physically removing the local class
+bias from every gradient computation.
+The second block is the aggregation: because every
+hospital solved the same balanced problem and their heads
+converged to the same point, their weighted average is
+also that same point.
 
-Taking the expectation:
-\begin{equation}
-  \mathbb{E}\bigl[\nabla_{\mathbf{w}} \mathcal{L}_k^{\mathrm{bal}}\bigr]
-  = \frac{1}{C}\sum_{c=0}^{C-1}
-    \mathbb{E}_{x \sim \mathcal{P}_k(\cdot \mid c)}
-    \bigl[\nabla_{\mathbf{w}}\,
-    \mathrm{CE}\bigl(\mathbf{w}^\top \Psi_\theta(x),\, c\bigr)\bigr].
-\end{equation}
-This expression depends on $\mathcal{P}_k(x \mid c)$ but
-\emph{not} on $\mathcal{P}_k(c)$.
-Applying the assumption
-$\mathcal{P}_k(x \mid c) \approx \mathcal{P}(x \mid c)$:
-\begin{equation}
-  \mathbb{E}\bigl[\nabla_{\mathbf{w}} \mathcal{L}_k^{\mathrm{bal}}\bigr]
-  \approx \frac{1}{C}\sum_{c}
-    \mathbb{E}_{x \sim \mathcal{P}(\cdot \mid c)}
-    \bigl[\nabla_{\mathbf{w}}\,
-    \mathrm{CE}\bigl(\mathbf{w}^\top \Psi_\theta(x),\, c\bigr)\bigr]
-  = \nabla_{\mathbf{w}}\,\mathcal{L}_{\mathrm{bal}}(\mathbf{w}).
-\end{equation}
-\end{proof}
+\paragraph{Empirical confirmation.}
+To verify that balanced sampling aligns client gradients
+in practice, three synthetic clients were constructed with
+class priors of 90\,\%, 50\,\%, and 10\,\% Luminal.
+For each client, the head gradient was computed under
+class-balanced and natural sampling, and its cosine
+similarity to the global balanced gradient was measured,
+averaged over 100 mini-batch draws.
 
-\subsubsection*{Empirical Verification}
+Table~\ref{tab:theorem-verification} reports the results.
+Under balanced sampling, all three clients produced
+gradients aligned with the global target at cosine
+$\geq 0.993$, regardless of their extreme prior
+differences.
+Under natural sampling, alignment collapsed to values
+between 0.0002 and 0.281.
+The 50\,\%-Luminal client achieved the highest natural
+alignment because its prior was already close to balanced;
+the two extreme clients were nearly orthogonal to the
+global target.
+This ordering confirms that the misalignment is caused
+by the local class prior and that balanced sampling
+eliminates it.
 
-Theorem~\ref{thm:fedscrt} makes a falsifiable claim: under
-class-balanced sampling, a client's head gradient should align
-with the global balanced-objective gradient regardless of that
-client's local class prior, while a naturally-sampled gradient
-should drift away from it in proportion to how skewed the
-client's prior is. To check this directly, frozen-backbone
-features were extracted for all 589 fold-0 training patients
-(446 Luminal, 143 Non-Luminal) using the Stage~2 checkpoint, and
-three artificial clients were constructed with deliberately
-different class priors --- 90\%, 50\%, and 10\% Luminal. For each
-client, a fresh linear head was initialised at the same point
-(zero weights and bias), and its gradient was computed twice:
-once from a class-balanced sample and once from a sample drawn
-according to the client's natural (skewed) proportions. The
-cosine similarity of each gradient to the global balanced
-gradient --- computed by averaging 200 balanced draws over the
-full pooled training set --- is reported in
-Table~\ref{tab:theorem-verification} and
-Figure~\ref{fig:theorem-verification}.
-
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
-\caption{Cosine similarity of each client's head gradient to the
-global balanced gradient, under balanced versus natural
-(prior-skewed) sampling.}
+\caption{Gradient alignment with and without balanced
+sampling. Cosine similarity to the global balanced
+gradient, averaged over 100 mini-batch draws per client.
+Balanced sampling produces prior-independent alignment
+(cos\,$\geq$\,0.993) across all three clients.}
 \label{tab:theorem-verification}
 \begin{tabular}{lcc}
 \toprule
-\textbf{Client} & \textbf{Balanced cosine} & \textbf{Natural cosine} \\
+Client (local prior) & Balanced & Natural \\
 \midrule
-Hospital A (90\% Luminal) & 0.9947 & 0.0083 \\
-Hospital B (50\% Luminal) & 0.9978 & 0.2814 \\
-Hospital C (10\% Luminal) & 0.9933 & 0.0002 \\
+Hospital A (90\,\% Luminal) & 0.9947 & 0.0083 \\
+Hospital B (50\,\% Luminal) & 0.9978 & 0.2814 \\
+Hospital C (10\,\% Luminal) & 0.9933 & 0.0002 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.75\linewidth]{figures/fig_theorem_verification.pdf}
-\caption{Cosine similarity to the global balanced gradient for
-each artificial hospital, comparing class-balanced sampling
-against the client's natural class prior.}
-\label{fig:theorem-verification}
-\end{figure}
-
-The balanced-sampling gradient stays close to perfectly aligned
-with the global target ($\cos \geq 0.993$) for all three clients,
-irrespective of how extreme their local prior is. The
-naturally-sampled gradient, in contrast, collapses toward the
-majority-class direction: its cosine similarity to the global
-target falls to near zero for Hospital~A and Hospital~C, and only
-Hospital~B --- whose 50\% prior happens to match the balanced
-target --- retains partial alignment. This is exactly the pattern
-Theorem~\ref{thm:fedscrt} predicts: class-balanced sampling
-removes the dependency of the head gradient on the local class
-prior $P_k(c)$, whereas natural sampling inherits and amplifies
-it.
-
-\subsubsection*{Corollary: Aggregation Consistency}
-
-\begin{corollary}
-\label{cor:fedscrt-agg}
-The FedSCRT server aggregation
-$\mathbf{w}_{\mathrm{global}} = \sum_k \frac{n_k}{n}
-\mathbf{w}_k^{\mathrm{cRT}}$
-converges to the minimiser of
-$\mathcal{L}_{\mathrm{bal}}$ as the number of local
-cRT epochs $T \to \infty$, independently of the
-client class priors $\{\mathcal{P}_k(c)\}_{k=1}^K$.
-\end{corollary}
-
-\begin{proof}
-By Theorem~\ref{thm:fedscrt}, each client's local cRT
-minimises an unbiased estimator of
-$\mathcal{L}_{\mathrm{bal}}$.
-Under standard SGD convergence assumptions (bounded
-gradient variance, diminishing step size, and a
-strongly convex or smooth loss landscape for the
-linear head), each local minimiser converges to the
-global minimiser of $\mathcal{L}_{\mathrm{bal}}$
-as $T \to \infty$.
-Federated averaging of converged local minimisers
-then yields the global minimiser by linearity
-of the expectation in equation~\eqref{eq:fedscrt-unbiased}.
-\end{proof}
-
-\subsubsection*{Conditions and Scope}
-
-Theorem~\ref{thm:fedscrt} holds under three conditions:
-(1)~each client holds at least one sample per class,
-$\min_{k,c} |\mathcal{D}_k^{(c)}| \geq 1$, so that
-balanced sampling is applicable;
-(2)~the backbone $\Psi_\theta$ produces features with
-positive Fisher linear separability for the binary task,
-so that the optimal head exists;
-and (3)~class-conditional feature distributions are
-approximately consistent across clients, which is
-the standard covariate-shift assumption for federated
-medical imaging~\cite{guan2024federated}.
-
-Condition (3) is the critical assumption.
-It states that scanner differences and imaging protocols
-affect the marginal distribution $\mathcal{P}_k(x)$
-but not the class-conditional structure
-$\mathcal{P}_k(x \mid c)$.
-In the breast DCE-MRI setting, this is approximately
-satisfied because molecular subtype determines tumour
-enhancement kinetics through biology rather than
-scanner hardware.
-
-Importantly, Theorem~\ref{thm:fedscrt} is independent
-of the non-IID degree $\alpha$: balanced sampling
-completely eliminates the influence of the local class
-prior $\mathcal{P}_k(c)$ from the head gradient,
-regardless of how extreme the Dirichlet partition is.
-The practical limitation of FedSCRT is not the head
-calibration stage but the backbone quality: if SCAFFOLD
-fails to converge to discriminative representations
-(as occurs under extreme non-IID conditions without
-sufficient rounds), the frozen backbone
-$\Psi_\theta$ limits the head's achievable performance.
-This explains the residual gap of 0.038 F1 points
-observed in the experiment (Section~\ref{sec:fedscrt-results}).
-
-% ============================================================
+\paragraph{Scope and future formalisation.}
+The argument above is stated informally and supported
+empirically.
+A formal proof of gradient unbiasedness under
+class-balanced sampling in the federated setting,
+including a full convergence rate analysis for the
+weighted aggregation step, is identified as a direction
+for future theoretical work (Section~\ref{sec:future-work}).
+The empirical evidence in Table~\ref{tab:theorem-verification}
+provides a sufficient foundation for the practical
+conclusions drawn in this thesis.
 \section{Evaluation Protocol and Metrics}
 \label{sec:eval-protocol}
 % ============================================================

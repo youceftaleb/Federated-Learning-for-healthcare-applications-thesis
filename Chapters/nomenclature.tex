@@ -174,40 +174,40 @@ in which it is first introduced.
     & Class prior at client $k$: probability that a
       randomly drawn sample from $\mathcal{D}_k$ belongs
       to class $c$. Varies across clients under non-IID.
-    & §\ref{thm:fedscrt} \\
+    & §\ref{sec:fedscrt-theory} \\
   $\mathcal{P}_k(x \mid c)$
     & Class-conditional feature distribution at client $k$:
       distribution of input features given class label $c$.
       Assumed approximately equal across clients (covariate
       shift assumption).
-    & §\ref{thm:fedscrt} \\
+    & §\ref{sec:fedscrt-theory} \\
   $\mathcal{P}(x \mid c)$
     & Global class-conditional feature distribution
-    & §\ref{thm:fedscrt} \\
+    & §\ref{sec:fedscrt-theory} \\
   $\mathcal{L}_{\mathrm{bal}}(\mathbf{w})$
     & Global balanced classification objective:
       equal weight per class
-    & §\ref{eq:balanced-objective} \\
+    & §\ref{sec:fedscrt-theory} \\
   $\mathcal{L}_k(\mathbf{w})$
     & Local imbalanced objective at client $k$:
       weighted by local class prior $\mathcal{P}_k(c)$
-    & §\ref{eq:local-objective} \\
+    & §\ref{sec:fedscrt-theory} \\
   $\mathcal{L}_k^{\mathrm{bal}}(\mathbf{w})$
     & Local objective under class-balanced sampling
       at client $k$: equal weight per class regardless
       of $\mathcal{P}_k(c)$
-    & §\ref{eq:fedscrt-unbiased} \\
+    & §\ref{sec:fedscrt-theory} \\
   $m$
     & Number of samples drawn per class per client
       during balanced sampling
-    & §\ref{eq:per-class-grad} \\
+    & §\ref{sec:fedscrt-theory} \\
   $\mathbf{w}_k^{\mathrm{cRT}}$
     & Local cRT head parameters at client $k$ after
       $T$ balanced training epochs
-    & §\ref{cor:fedscrt-agg} \\
+    & §\ref{sec:fedscrt-theory} \\
   $\mathbf{w}_{\mathrm{global}}$
     & Aggregated FedSCRT global head
-    & §\ref{cor:fedscrt-agg} \\
+    & §\ref{sec:fedscrt-theory} \\
   \hline
 \end{tabular}
 \end{center}
