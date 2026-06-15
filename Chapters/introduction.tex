@@ -1,2 +1,138 @@
 \chapter*{General Introduction}
 \addcontentsline{toc}{chapter}{General Introduction}
+
+% ============================================================
+% PROBLEMATIQUE — General Introduction
+% ============================================================
+\section*{Research Problem and Questions}
+
+The convergence of three concurrent realities motivates
+the research conducted in this thesis.
+First, breast cancer molecular subtype classification from
+DCE-MRI is a clinically consequential task: the subtype
+determines whether a patient receives endocrine therapy,
+cytotoxic chemotherapy, or targeted anti-HER2 treatment,
+and early, accurate classification directly influences
+survival outcomes.
+Second, the datasets required to train reliable deep
+learning classifiers for this task are distributed across
+hospital institutions that cannot freely share patient
+imaging data: clinical records are locked in isolated
+institutional silos whose incompatible systems and
+restricted access policies make centralised collection
+impractical without a distributed learning approach.
+Third, the dataset available at any single institution is
+severely class-imbalanced, with the rarest subtype
+representing fewer than 7\% of cases, placing a hard
+ceiling on what any single-site model can achieve.
+
+Federated learning offers a principled resolution to the
+first two realities by enabling multi-institutional model
+training without raw data exchange.
+However, the third reality introduces a challenge that
+federated learning alone does not resolve: when data are
+both scarce and unevenly distributed across institutions,
+the standard Federated Averaging algorithm converges
+toward a globally biased model that performs well on
+majority classes and poorly on the clinical minorities
+that are most diagnostically challenging.
+The central research problem of this thesis is therefore:
+
+\begin{center}
+\textit{How can federated learning be configured and
+optimised to classify breast MRI molecular subtypes
+accurately across privacy-preserving hospital silos,
+given severe class imbalance and non-identically
+distributed data?}
+\end{center}
+
+This problem is decomposed into three specific research
+questions that structure the experimental evaluation:
+
+\begin{enumerate}
+
+  \item What classification performance ceiling does a
+  centralised deep learning system achieve on breast MRI
+  molecular subtype prediction under severe class
+  imbalance, and how does a clinically motivated binary
+  reformulation address the fundamental data scarcity
+  constraint imposed by rare subtypes?
+
+  \item How much classification performance is lost when
+  training is distributed across three simulated hospital
+  clients with non-IID data partitioning under the FedAvg
+  aggregation strategy, and what is the nature of the
+  privacy--performance trade-off in this setting?
+
+  \item Can SCAFFOLD's control-variate correction
+  mechanism reduce the convergence gap caused by
+  statistical heterogeneity in a three-hospital federated
+  breast MRI setting, and to what extent does
+  convergence-aware aggregation recover the performance
+  lost to client drift?
+
+\end{enumerate}
+
+\section*{Contributions}
+
+This thesis makes the following original contributions
+to the federated medical imaging literature.
+
+\begin{itemize}
+
+  \item A complete three-stage training pipeline combining
+  ConvNeXt-Nano with Gated Attention Multiple Instance
+  Learning, Label-Distribution-Aware Margin loss, Adaptive
+  Sharpness-Aware Minimization, Stochastic Weight
+  Averaging, and Classifier Retraining, designed
+  specifically for severely imbalanced breast DCE-MRI
+  classification on a single consumer-grade GPU.
+
+  \item A systematic empirical comparison of FedAvg and
+  SCAFFOLD aggregation strategies under three degrees of
+  non-IID data heterogeneity across simulated hospital
+  clients, using a clinically motivated binary
+  reformulation of the molecular subtype task.
+
+  \item A proof-of-concept radiomic feature fusion
+  experiment combining 256-dimensional deep MIL embeddings
+  with 59 hand-crafted PyRadiomics features, demonstrating
+  the complementary information available from explicit
+  texture descriptors on whole-breast DCE-MRI volumes
+  without tumour segmentation masks.
+
+\end{itemize}
+
+The experimental validation is conducted on breast
+Dynamic Contrast-Enhanced MRI (DCE-MRI) molecular
+subtype classification, a domain selected deliberately
+on four grounds.
+First, breast DCE-MRI is among the most legally and
+ethically sensitive medical imaging modalities:
+volumetric MRI studies contain biometric and genetic
+implications that make cross-institutional sharing
+particularly constrained under both international and
+Algerian data protection law.
+Second, the publicly available Duke Hospital dataset
+\cite{saha2018,alves2023breastmri} presents a class
+imbalance ratio of 10.4:1, making it one of the most
+challenging multi-class imbalance benchmarks in medical
+imaging FL research and a rigorous test for the
+proposed optimisation techniques.
+Third, the molecular subtype label has direct,
+high-stakes treatment consequences: the binary
+Luminal versus Non-Luminal decision governs whether
+a patient receives endocrine therapy or cytotoxic
+chemotherapy, making classification errors clinically
+costly in a federated deployment context.
+Fourth, it is the only large-scale publicly available
+breast DCE-MRI collection with molecular subtype
+labels, ensuring that results are reproducible and
+comparable.
+The optimisation contributions of this thesis,
+including the three-stage imbalance-aware training
+pipeline and the SCAFFOLD aggregation strategy, are
+general and transferable to other healthcare FL
+scenarios beyond breast MRI.
+
+% ============================================================

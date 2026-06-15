@@ -2,13 +2,16 @@
 \usepackage[font=small,labelfont=bf]{caption}
 %====================== PACKAGES ======================
 %Options: Sonny, Lenny, Glenn, Conny, Rejne, Bjarne, Bjornstrup
-% \usepackage{csquotes}
-\usepackage[Glenn]{fncychap} 
+\usepackage[Glenn]{fncychap}
 \usepackage{fancyhdr}
 \usepackage[final]{pdfpages}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage{xcolor}
+\algrenewcommand\algorithmiccomment[1]{%
+  \hfill{\color{gray}\small\textit{// #1}}}
 \usepackage[utf8]{inputenc}
+\usepackage{csquotes}
 \usepackage[english]{babel}
 %pour gérer les positionnement d'images
 \usepackage{float}
@@ -46,6 +49,8 @@
 %\usepackage{subfig}
 \usepackage{amsthm}
 \newtheorem{definition}{Définition}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{corollary}{Corollary}[theorem]
 \usepackage{rotating}
 %\usepackage{multirow}
 \usepackage{xspace}
@@ -60,6 +65,7 @@
     citecolor=blue,
 }
 \usepackage{subcaption}
+\usepackage[titles]{tocloft}
 \usepackage{tablefootnote}
 \usepackage[acronym]{glossaries}
 \newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
@@ -123,9 +129,11 @@
 		    \textbf{supervised by:}\\
 		    \text{Mme Malika MEHDI-SILHADI}\\
 		    \text{Mme MEKAHLIA}\\
+			\textbf{Present of the Jury:}\\
+			\text{GHARBI NAWEL}\\
 		    \textbf{Members of the Jury:}\\
-		    \text{NOM Prenom}\\
-		    \text{NOM Prenom}\\
+		    \text{OUROUA NAOUAL}\\
+		    \text{HAMIOUD HAMIDA}\\
 		    
 			\end{flushleft}
 			\end{minipage}~
@@ -140,28 +148,36 @@
 		\end{flushright}
 	\end{minipage}\\[2 cm]
 	\begin{center}
-	    Project:  SII\_E\_0XX / 2026
+	    Project:  BIOINFO\_E\_023 / 2026
 	\end{center}
 \end{titlepage}
 %changing names%
 \renewcommand{\listfigurename}{List of Figures}
 \renewcommand{\listtablename}{List of Tables}
 
+% NOTE: Arabic dedication requires arabluatex or
+% polyglossia with Arabic. If compilation fails,
+% replace \begin{Arabic}...\end{Arabic} with
+% a transliterated version or a PNG image.
+% Contact supervisor for font configuration.
+\include{Chapters/dedication}
 \include{Chapters/acknowledgements}
-\include{Chapters/resume}
 \include{Chapters/abstract}
+\include{Chapters/resume}
 \hypersetup{hidelinks}
 \tableofcontents
 \include{Chapters/acronyms}
 \listoffigures
 \listoftables
+\input{Chapters/nomenclature}
 \include{Chapters/introduction}
 \include{Chapters/chapter1}
 \include{Chapters/chapter2}
 \include{Chapters/chapter3}
 \include{Chapters/chapter4}
-\include{Chapters/conclusions}
+\include{Chapters/conclusion}
 \include{Chapters/appendix}
 
 \printbibliography
+\input{Chapters/appendix_fedmri}
 \end{document}

@@ -1,0 +1,124 @@
+\chapter{Problem Statement}
+\label{chap:problem-statement}
+
+% ============================================================
+\section{Motivation}
+\label{sec:motivation}
+% ============================================================
+
+The clinical deployment of deep learning systems for medical image analysis is
+fundamentally constrained by the fragmentation of patient data across healthcare
+institutions.
+The fragmentation of patient data across institutional silos imposes strict
+conditions on any cross-institutional transfer of protected health information,
+conditions that a conventional centralised training pipeline cannot satisfy
+without substantial overhead.
+As a consequence, the large, diverse, and representative datasets that deep
+learning models require for reliable generalisation are, in practice, inaccessible
+through centralisation: each institution's imaging archive constitutes an isolated
+silo that can neither be pooled with nor directly compared against those of
+neighbouring sites.
+
+Breast cancer molecular subtype classification from dynamic contrast-enhanced MRI
+exemplifies this tension.
+Accurately distinguishing Luminal~A, Luminal~B, HER2-enriched, and Triple-Negative
+subtypes from volumetric DCE-MRI data is clinically consequential: subtype
+assignment directly determines therapeutic strategy, yet the inter-institutional
+variability in scanner hardware, acquisition protocol, patient demographics, and
+subtype prevalence means that models trained at a single site are unlikely to
+generalise to other clinical environments \cite{ghosh2020clustered}.
+Federated learning, which trains a shared model by exchanging only parameter
+updates rather than raw patient data, offers a principled mechanism for exploiting
+multi-institutional data under these constraints.
+To the best of the authors' knowledge, no prior published work has applied federated
+learning to molecular subtype classification on the publicly available breast
+DCE-MRI cohort \cite{alves2023breastmri} with a variance-reduction aggregation
+strategy such as SCAFFOLD, leaving a significant gap in the empirical literature
+that this thesis addresses.
+
+% ============================================================
+\section{Research Questions}
+\label{sec:research-questions}
+% ============================================================
+
+This thesis is organised around three research questions that progress from
+centralised baseline characterisation to federated optimisation:
+
+\begin{enumerate}
+
+  \item[\textbf{RQ1.}] What classification performance ceiling does a centralised
+  deep learning system achieve on breast DCE-MRI molecular subtype prediction
+  under severe class imbalance, and how does a clinically motivated binary
+  reformulation address the data scarcity constraint imposed by rare subtypes?
+
+  \item[\textbf{RQ2.}] How much classification performance is lost when training
+  is distributed across three simulated hospital clients with non-IID data
+  partitioning under the FedAvg aggregation strategy, and what is the
+  quantitative privacy-performance trade-off?
+
+  \item[\textbf{RQ3.}] Can SCAFFOLD's control-variate correction mechanism reduce
+  the convergence gap caused by statistical heterogeneity in a three-hospital
+  federated breast MRI setting, and to what extent does convergence-aware
+  aggregation recover performance lost to client drift?
+
+\end{enumerate}
+
+% ============================================================
+\section{Formal Hypotheses}
+\label{sec:hypotheses}
+% ============================================================
+
+The three research questions yield the following testable hypotheses:
+
+\begin{enumerate}
+
+  \item[\textbf{H1.}] A ConvNeXt-Nano backbone with Gated Attention MIL, trained
+  with LDAM loss and ASAM optimisation, achieves higher macro F1 on the four-class
+  centralised task than a standard cross-entropy baseline, because the combination
+  of margin-based loss and sharpness-aware minimisation better handles the
+  10.4:1 class imbalance present in the dataset.
+
+  \item[\textbf{H2.}] FedAvg aggregation across three non-IID hospital clients
+  incurs a performance penalty relative to the centralised baseline, because local
+  gradient updates on heterogeneous data distributions cause client drift that is
+  not corrected by simple weighted averaging.
+
+  \item[\textbf{H3.}] SCAFFOLD's control-variate mechanism reduces the client
+  drift identified in~H2 and narrows the centralised-federated performance gap,
+  because it explicitly estimates and corrects the client-specific gradient bias
+  at each communication round.
+
+\end{enumerate}
+
+% ============================================================
+\section{Thesis Contributions}
+\label{sec:contributions}
+% ============================================================
+
+This thesis makes the following original contributions to the federated medical
+imaging literature:
+
+\begin{enumerate}
+
+  \item[\textbf{C1.}] A three-stage centralised training pipeline combining
+  Label-Distribution-Aware Margin loss, Sharpness-Aware Minimisation, Stochastic
+  Weight Averaging, and classifier re-training (LDAM + ASAM + SWA + cRT), designed for
+  breast DCE-MRI molecular subtype classification under severe class imbalance,
+  evaluated over five-fold cross-validation with patient-level stratification.
+
+  \item[\textbf{C2.}] A clinically motivated binary reformulation of the molecular
+  subtype classification task that maps directly to the hormone therapy eligibility
+  decision boundary, demonstrated to be more tractable under federated constraints
+  than the four-class formulation.
+
+  \item[\textbf{C3.}] An empirical comparison of FedAvg and SCAFFOLD aggregation
+  strategies under three degrees of non-IID data heterogeneity
+  (Dirichlet $\alpha \in \{0.1,\, 0.5,\, 100\}$) on the publicly available breast
+  DCE-MRI dataset \cite{alves2023breastmri}, quantifying the convergence benefit
+  of control-variate correction.
+
+  \item[\textbf{C4.}] A proof-of-concept radiomic feature fusion experiment
+  combining hand-crafted PyRadiomics features with deep MIL embeddings, providing
+  an interpretable complement to the end-to-end deep learning pipeline.
+
+\end{enumerate}

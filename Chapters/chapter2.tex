@@ -7,20 +7,16 @@
 % ============================================================
 
 Modern healthcare generates massive quantities of sensitive clinical
-data - radiological images, genomic profiles, electronic health records,
-and physiological time series distributed across hospitals, research
+data -- radiological images, genomic profiles, electronic health records,
+and physiological time series -- distributed across hospitals, research
 centres, and diagnostic laboratories that are separated by
 institutional, legal, and geographical boundaries.
 Chapter~1 established that these institutions operate as data silos:
 each custodian holds locally valuable patient data that it cannot, in
 practice, freely share with external parties.
-The regulatory frameworks that govern this reality -- the General Data
-Protection Regulation (GDPR) in the European Union and the Health
-Insurance Portability and Accountability Act (HIPAA) in the United
-States -- impose strict conditions on any cross-institutional transfer of
-patient data, conditions that a conventional centralised machine
-learning pipeline cannot satisfy without substantial legal and
-technical overhead \cite{gdpr2016regulation,hipaa1996health}.
+Data sovereignty constraints impose strict conditions on any cross-institutional
+transfer of patient data, conditions that a conventional centralised machine
+learning pipeline cannot satisfy without substantial technical overhead.
 
 Yet the imperative for collaborative learning in clinical AI is equally
 compelling.
@@ -34,16 +30,17 @@ Meaningful generalisation across clinical environments -- a prerequisite
 for safe deployment -- requires exposure to the diversity that is only
 available when multiple institutions contribute to the learning process.
 
-Federated learning (FL) resolves this tension by inverting the
-conventional data-movement assumption: instead of bringing patient data
-to the model, the model is brought to the data.
-Each participating institution trains a local copy of the model on its
-own private data and transmits only model parameters -- gradient updates
-or weight vectors -- to a central coordination server that aggregates them
-into an improved global model.
-Raw patient data never leave the custodian site, and the progressively
-aggregated model captures knowledge distributed across all participating
-institutions \cite{mcmahan2017communication,kairouz2021advances}.
+Federated learning (FL) addresses these obstacles through a fundamental
+reorientation of the training workflow: rather than centralising data,
+the learning process travels to each data custodian.
+Every participating institution independently optimises a local copy of
+the shared model on its private patient records, then communicates only
+the resulting parameter updates to a central server responsible for
+aggregation.
+At no stage do raw patient records cross institutional boundaries; the
+progressively refined global model accumulates knowledge from all sites
+without requiring physical data transfer
+\cite{mcmahan2017communication,kairouz2021advances}.
 
 This chapter provides a structured survey of federated learning as it
 applies to healthcare, with particular attention to the aspects
@@ -68,7 +65,8 @@ by positioning the present contribution within the state of the art.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.88\linewidth]{figures/nguyen2022_fig1.png}
-  \caption{Network architecture and communication process for
+  \caption[FL in smart healthcare]{Network architecture
+    and communication process for
     federated learning in smart healthcare. Heterogeneous clients
     (hospital computers, mobile devices, IoMT sensors) each perform
     local computation on private data and upload model updates to
@@ -81,206 +79,51 @@ by positioning the present contribution within the state of the art.
 \label{sec:centralised-to-fl}
 % ============================================================
 
-\subsection{Limitations of Centralised Learning in Healthcare}
+\subsection{From Centralised to Federated Learning}
 \label{sec:centralised-limits}
+\label{sec:distributed-paradigms}
+\label{sec:fl-definition}
 
-The dominant paradigm in machine learning assumes that training data
-can be assembled on a single computing infrastructure: all images,
-labels, and metadata are collected into a shared repository from which
-a model is optimised over the entire dataset in one place.
-While this paradigm has produced outstanding results in computer vision
-and natural language processing using large internet-sourced corpora,
-its direct application to clinical medical imaging raises a set of
-fundamental obstacles that are qualitatively distinct from those
-encountered in industrial or consumer settings.
-
-\paragraph{Privacy and data-sovereignty constraints.}
-Patient health data is one of the most sensitive categories of personal
-information recognised by law.
-The GDPR classifies health data as a \emph{special category} of
-personal data whose processing requires an explicit legal basis and, in
-the absence of a recognised public-interest justification, the freely
-given informed consent of the data subject \cite{gdpr2016regulation}.
-HIPAA similarly mandates that covered entities implement technical,
-physical, and administrative safeguards against unauthorised disclosure
-of protected health information (PHI) \cite{hipaa1996health}.
-Transmitting raw breast MRI volumes to an external data centre
-constitutes a cross-institutional transfer of PHI; each volume may be
-re-identified through its anatomical characteristics, and the transfer
-itself may trigger obligations under both frameworks.
-In practice, hospital data protection officers and ethics committees
-are frequently unwilling or legally unable to approve such transfers
-without case-by-case ethical approval -- a process whose time and
-administrative cost renders systematic centralisation infeasible for
-multi-site studies.
-
-\paragraph{Data ownership and institutional interests.}
-Beyond the regulatory dimension, institutional data ownership creates
-strategic tensions.
-A hospital's radiological archive represents years of clinical
-investment and constitutes a competitive asset for academic medical
-centres engaged in research productivity metrics.
-Participating institutions may be willing to contribute to collaborative
-research while remaining unwilling to surrender physical custody of
-their imaging collections to a third-party data aggregator.
-Centralised data pooling, by design, requires that contributing
-institutions relinquish effective control over how their data are
-stored, accessed, and potentially re-used by the operator of the
-central repository \cite{rieke2020future}.
-This tension has been a practical barrier to the construction of
-large, multi-centre imaging databases even where formal data-sharing
-agreements exist in principle.
-
-\paragraph{Transfer cost and technical scalability.}
-Breast MRI volumes acquired with dynamic contrast-enhanced (DCE-MRI)
-protocols are large.
-A single patient examination -- comprising multiple dynamic phases and
-high-resolution three-dimensional sequences -- can occupy several
-gigabytes of storage.
-When a dataset spans hundreds of patients across multiple geographically
-distributed institutions, the aggregate data-transfer burden in terms
-of bandwidth, storage provisioning, and network latency is
-substantial, particularly for clinical sites in under-resourced
-network environments.
-This logistical barrier can render centralised data pooling impractical
-independently of any regulatory consideration.
-
-\paragraph{Single-site bias and generalisation failure.}
-Even when centralisation is technically and legally feasible, a model
-trained exclusively on data from a single institution carries the risk
-of overfitting to institution-specific covariates: the scanner
-manufacturer and field strength, the surface coil configuration, the
-contrast-agent protocol, and the specific patient demographic served by
-that hospital.
-In breast MRI molecular subtype classification, where the relative
-prevalence of Luminal~A, Luminal~B, HER2-enriched, and Triple-Negative
-subtypes varies with ethnicity, age, and clinical screening policy,
-a single-site model may achieve high internal validation accuracy while
-failing on data from a second site with a different subtype distribution
-and acquisition parameters \cite{rieke2020future,sheller2020federated}.
-This limitation is clinically consequential: a deployed model that does
-not generalise across sites introduces systematic diagnostic errors in
-any population it has not seen during training.
+The dominant centralised learning paradigm encounters four fundamental obstacles
+in clinical settings.
+\textit{Privacy and data sovereignty}: health data belongs to a special protected
+category requiring explicit legal basis, technical safeguards against unauthorised
+disclosure, and case-by-case ethics committee approval, making systematic
+centralisation infeasible.
+\textit{Data ownership}: a hospital's radiological archive represents years of
+clinical investment; institutions may collaborate while refusing to surrender
+physical custody to a third-party aggregator \cite{rieke2020future}.
+\textit{Transfer cost}: a single breast DCE-MRI examination can occupy several
+gigabytes; aggregate transfer across hundreds of patients imposes bandwidth burdens
+that render centralisation impractical independently of regulation.
+\textit{Generalisation failure}: a model trained on a single institution's data
+is overfit to its scanner hardware and patient demographics; single-site breast MRI
+models achieve high internal accuracy but fail on data from sites with different
+subtype distributions \cite{sheller2020federated,rieke2020future}.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{figures/fig2_1_centralised_vs_federated.jpg}
-    \caption{Centralised versus federated learning in a multi-hospital
-      breast MRI scenario. Left: raw patient data must be transferred
-      to a single data centre, raising GDPR and data-sovereignty
-      concerns \cite{gdpr2016regulation,hipaa1996health}. Right: only
-      model parameters are exchanged with the coordination server;
-      raw data remain at each institution \cite{mcmahan2017communication}.}
+    \caption[Centralised versus federated learning]{%
+      Centralised versus federated learning. Left: raw patient data must
+      be transferred to a central server, violating data locality requirements.
+      Right: only model parameters are exchanged; data remain at each institution
+      \cite{mcmahan2017communication}.}
     \label{fig:centralised-vs-fl}
 \end{figure}
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.85\linewidth]{figures/rieke2020_fig1.png}
-  \caption{Federated learning workflows compared to centralised data lake training.
-    In the aggregation-server topology (\textit{left}), clients train locally and
-    submit model updates to a central server for aggregation; raw patient data never
-    leave the institution. Adapted from \cite{rieke2020future}.}
-  \label{fig:rieke-fl-workflows}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.75\linewidth]{figures/sheller2020_fig1b.png}
-  \caption{Federated learning for multi-institutional medical collaboration.
-    Each institution trains locally on its own patient data and submits
-    model updates to an aggregation server; no raw data are shared.
-    Adapted from \cite{sheller2020federated}.}
-  \label{fig:sheller-fl-medicine}
-\end{figure}
-
-
-\subsection{Distributed Learning Paradigms}
-\label{sec:distributed-paradigms}
-
-The limitations of centralised learning have motivated a spectrum of
-distributed training approaches that differ in where data reside, how
-computation is partitioned, and the degree of trust placed in the
-coordinating infrastructure.
-Understanding where federated learning sits within this spectrum
-clarifies both its distinctive properties and the assumptions it makes.
-
-\paragraph{Classical data-parallel distributed training.}
-The most straightforward departure from single-machine training is
-data-parallel processing in a parameter-server architecture
-\cite{dean2012large}.
-A central server maintains the canonical copy of model parameters;
-a pool of worker machines each receive a disjoint shard of a centrally
-stored dataset, compute gradients over that shard, and return the
-gradients to the server for synchronous or asynchronous aggregation.
-This architecture scales computation across many machines and has
-become standard practice in industry for training large-scale models.
-Crucially, however, the data themselves remain co-located in a shared
-data centre under the exclusive control of a single operator.
-Data-parallel distributed training therefore does not address the
-privacy, sovereignty, or data-transfer cost concerns identified in the
-previous section; it is an engineering technique for accelerating
-computation over a centralised dataset, not a solution to the
-multi-institutional data-governance problem.
-
-\paragraph{Federated learning as a privacy-aware cross-silo paradigm.}
-Federated learning introduces a qualitatively different constraint:
-the training data are not co-located and, by design or by legal
-requirement, cannot be moved to a central facility.
-Each data silo -- referred to in the FL literature as a
-\emph{client} -- retains its data locally and participates in the
-training process by computing model updates on its own private dataset
-and transmitting only those updates, never the raw data, to a
-coordinating server \cite{mcmahan2017communication}.
-The server aggregates parameter updates from participating clients and
-broadcasts an improved global model for the next training round.
-Raw patient records never traverse the network, and the communication
-channel carries only floating-point model weights whose privacy
-properties can be further reinforced with cryptographic or
-noise-injection techniques (discussed in
-Section~\ref{sec:privacy-security}).
-
-FL is commonly classified along two orthogonal axes that determine the
-applicable algorithms and privacy assumptions.
-The first axis distinguishes \emph{horizontal} from \emph{vertical}
-federation.
-In \emph{horizontal} FL, all clients share the same feature space -- all
-institutions acquire the same imaging modality and predict the same
-outcome -- but hold non-overlapping patient populations.
-This is the setting relevant to the present thesis: each of the three
-simulated hospital clients holds a distinct cohort of breast MRI
-patients with the same four molecular subtype labels.
-In \emph{vertical} FL, clients hold overlapping patient identifiers
-but complementary feature spaces -- for example, one institution holds
-MRI images and another holds genomic profiles for the same patients.
-Vertical federation requires patient-identifier alignment across sites,
-which introduces additional privacy challenges and is a more complex
-engineering problem \cite{yang2019federated,kairouz2021advances}.
-
-The second axis distinguishes \emph{cross-device} from
-\emph{cross-silo} federation.
-Cross-device FL involves a very large number of lightweight,
-intermittently available clients -- potentially millions of smartphones
-or Internet-of-Things sensors -- communicating over unreliable
-low-bandwidth links with highly heterogeneous hardware capabilities.
-Cross-silo FL, by contrast, involves a small to moderate number of
-institutional clients -- a consortium of hospitals or research
-centres -- that are persistently available, possess substantial compute
-resources, and are typically bound by formal data-sharing agreements
-even if raw data transfer is prohibited.
-The breast MRI classification scenario studied in this work corresponds
-to \emph{cross-silo horizontal} FL: three simulated hospital clients,
-each holding a non-IID partition of the 737-patient DCE-MRI dataset,
-trained using the Flower framework with PyTorch as the local compute
-backend.
-Table~\ref{tab:fl-taxonomy} summarises the key distinctions between
-the main FL paradigms.
+Federated learning addresses these obstacles by requiring each institution to
+transmit only model parameter updates (never raw data) to a central
+coordination server \cite{mcmahan2017communication}.
+This thesis operates in the \emph{cross-silo, horizontal} quadrant: a small number
+of persistent institutional clients each holding a non-overlapping patient population
+with the same feature space \cite{yang2019federated,kairouz2021advances}
+(Table~\ref{tab:fl-taxonomy}).
 
 \begin{table}[htbp]
   \centering
-  \caption{Taxonomy of federated learning paradigms along two
-    classification axes. This thesis operates in the cross-silo,
-    horizontal quadrant.}
+  \caption{Taxonomy of federated learning paradigms. This thesis operates in the
+    cross-silo, horizontal quadrant.}
   \label{tab:fl-taxonomy}
   \renewcommand{\arraystretch}{1.3}
   \begin{tabular}{lll}
@@ -299,53 +142,26 @@ the main FL paradigms.
 \end{table}
 
 \begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.8\textwidth]{figures/fig2_2_fl_taxonomy.jpg}
-    \caption{Taxonomy of federated learning paradigms. The highlighted
-      quadrant cross-silo, horizontal FL corresponds to the
-      setting adopted in this thesis \cite{yang2019federated,kairouz2021advances}.}
-    \label{fig:fl-taxonomy}
-\end{figure}
-
-\begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.80\linewidth]{figures/yang2019_fig2.png}
-  \caption{Categorisation of federated learning by data partition.
-    (a) Horizontal FL: clients share the same feature space but hold
-    different samples. (b) Vertical FL: clients share overlapping samples
-    but hold complementary feature spaces. (c) Federated transfer learning.
+  \includegraphics[width=0.85\linewidth]{figures/yang2019_fig2.png}
+  \caption[Horizontal versus vertical FL]{Horizontal
+    versus vertical federated learning.
+    In horizontal FL (top), clients share the same feature space but hold
+    disjoint patient populations; each institution contributes independent
+    samples of the same measurements.
+    In vertical FL (bottom), clients hold complementary feature sets for an
+    overlapping patient population.
+    This thesis operates in the horizontal, cross-silo quadrant.
     Adapted from \cite{yang2019federated}.}
-  \label{fig:yang-fl-taxonomy}
+  \label{fig:fl-horizontal-vertical}
 \end{figure}
 
-
-\subsection{Definition and Origins of Federated Learning}
-\label{sec:fl-definition}
-
-Federated learning was formally introduced by McMahan \emph{et al.}\
-in 2017 in the context of training a next-word-prediction language
-model on data distributed across millions of mobile devices
-\cite{mcmahan2017communication}.
-The authors identified a class of learning problems characterised by
-three properties: the training data are generated and stored on devices
-that are not under the operator's direct control; those data contain
-sensitive user information that makes centralised aggregation
-undesirable; and the dataset is massively distributed, with each
-device holding a relatively small and non-identically distributed
-portion of the total information.
-The proposed solution -- \emph{Federated Averaging} (FedAvg) -- has since
-become the canonical baseline algorithm for the field and is described
-in detail in Section~\ref{sec:fedavg}.
-
-Formally, the federated learning optimisation problem is stated as
-follows.
-Let $K$ denote the number of participating clients, let
-$\mathcal{D}_k$ denote the private local dataset of client $k$,
-with $n_k = |\mathcal{D}_k|$ the number of local samples and
-$n = \sum_{k=1}^{K} n_k$ the total sample count across all clients.
-The goal is to find model parameters $\mathbf{w}^{\ast}$ that minimise
-the globally weighted empirical risk:
-
+Formally, let $K$ denote the number of participating clients,
+$\mathcal{D}_k$ the private local dataset of client $k$,
+$n_k = |\mathcal{D}_k|$ the number of local samples, and
+$n = \sum_{k=1}^{K} n_k$ the total sample count.
+The goal is to find model parameters $\mathbf{w}^{\ast}$ minimising the
+globally weighted empirical risk:
 \begin{equation}
   \mathbf{w}^{\ast}
   \;=\;
@@ -353,39 +169,22 @@ the globally weighted empirical risk:
   \sum_{k=1}^{K} \frac{n_k}{n}\, F_k(\mathbf{w}),
   \label{eq:fl-objective}
 \end{equation}
-
-where the local objective $F_k$ of client $k$ is the empirical risk
-over its private data:
-
+where the local objective $F_k$ is the empirical risk over client $k$'s
+private data:
 \begin{equation}
   F_k(\mathbf{w})
   \;=\;
   \frac{1}{n_k}
   \sum_{(\mathbf{x},\, y)\,\in\,\mathcal{D}_k}
-  \ell\bigl(f(\mathbf{x};\mathbf{w}),\; y\bigr),
+  \ell\bigl(f(\mathbf{x};\mathbf{w}),\; y\bigr).
   \label{eq:local-risk}
 \end{equation}
-
-with $f(\cdot\,;\mathbf{w})$ the model function parameterised by
-$\mathbf{w}$, and $\ell$ the per-sample loss function (e.g.\
-cross-entropy for multi-class classification).
-The key observation is that the objective in
-\eqref{eq:fl-objective} is \emph{mathematically equivalent} to
-standard empirical risk minimisation over the pooled dataset
-$\bigcup_k \mathcal{D}_k$, yet it can be minimised
-\emph{without ever pooling the data} \cite{kairouz2021advances}.
-
-Training proceeds in discrete \emph{communication rounds}.
-At round $t$, the server selects a subset of clients
-$\mathcal{S}^{(t)} \subseteq \{1,\ldots,K\}$ and broadcasts the
-current global parameters $\mathbf{w}^{(t)}$.
-Each selected client $k$ initialises its local model with
-$\mathbf{w}^{(t)}$ and performs $E$ steps of mini-batch stochastic
-gradient descent on $\mathcal{D}_k$, obtaining a locally updated
-parameter vector $\mathbf{w}_k^{(t+1)}$.
-The server then aggregates the client updates into a new global
-model using a weighted average:
-
+This objective is mathematically equivalent to empirical risk minimisation
+over the pooled dataset yet can be minimised without ever pooling the data
+\cite{kairouz2021advances}.
+At each communication round $t$ the server broadcasts global parameters
+$\mathbf{w}^{(t)}$, each selected client performs $E$ local Stochastic Gradient Descent (SGD) steps, and
+the server aggregates the updates:
 \begin{equation}
   \mathbf{w}^{(t+1)}
   \;=\;
@@ -395,29 +194,11 @@ model using a weighted average:
   \label{eq:fedavg-aggregation}
 \end{equation}
 
-Equation~\eqref{eq:fedavg-aggregation} is the aggregation step of
-FedAvg; the local training step and its interaction with data
-heterogeneity are analysed in detail in Section~\ref{sec:aggregation}.
-
-The transition from the original mobile cross-device setting to
-cross-silo healthcare applications was both rapid and well-motivated.
-Pioneering empirical work by Sheller \emph{et al.}\ demonstrated
-that a FL model trained across multiple institutions, without any
-data sharing, could achieve performance competitive with a centrally
-trained baseline on a brain tumour segmentation task -- a result
-attributable in part to the regularising effect of training on
-heterogeneous clinical distributions \cite{sheller2020federated}.
-Subsequent comprehensive surveys have catalogued FL applications
-spanning radiology, pathology, genomics, and electronic health records
-\cite{rieke2020future,nguyen2022federated,kaissis2020secure},
-establishing federated learning as the dominant collaborative learning
-paradigm endorsed by the medical AI research community when privacy
-constraints prohibit raw data sharing.
-
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{figures/fig2_3_one_fl_round.jpg}
-    \caption{The four phases of one federated learning communication
+    \caption[One federated learning round]{The four
+      phases of one federated learning communication
       round (equation~\eqref{eq:fedavg-aggregation}). The server
       broadcasts $\mathbf{w}^{(t)}$, each client performs $E$ local
       SGD steps on $\mathcal{D}_k$, the resulting
@@ -433,170 +214,30 @@ constraints prohibit raw data sharing.
 \label{sec:fl-architecture}
 % ============================================================
 
-The practical realisation of the federated optimisation objective
-defined in Section~\ref{sec:fl-definition} requires a concrete system
-architecture that coordinates communication between geographically
-distributed participants, manages model state across training rounds,
-and enforces the data-locality constraint that distinguishes federated
-from centralised learning.
-This section describes the canonical two-tier client--server
-architecture that underlies most deployed and experimental FL systems,
-including the Flower-based setup employed in this thesis.
-
 \subsection{Client-Server Paradigm}
 \label{sec:client-server}
-
-The canonical FL architecture is organised as a two-tier hierarchy
-consisting of a central coordination server and a set of $K$ clients,
-each in possession of a private local dataset $\mathcal{D}_k$ that
-remains on-site throughout the entire training process
-\cite{mcmahan2017communication}.
-The server is the orchestrating entity: it maintains the authoritative
-copy of the global model, schedules training rounds, selects
-participating clients, aggregates locally computed updates, and
-broadcasts the updated global model.
-Clients are the computational entities: each executes local
-optimisation on its own data and returns parameter updates to the
-server without exposing raw records.
-
-This division of responsibility reflects both the privacy requirement
-and the typical infrastructure of cross-silo healthcare deployments.
-The server may be hosted by a neutral third party -- a research
-consortium, a cloud provider operating under a data-processing
-agreement, or one of the participating hospitals designated as
-coordinator -- provided that the server never receives raw patient data.
-Clients in a cross-silo setting are typically individual hospital sites
-or research centres, each equipped with sufficient GPU compute to
-execute local training on their imaging datasets
-\cite{rieke2020future,kairouz2021advances}.
-
-An important architectural distinction concerns the degree of client
-selection per round.
-In large-scale cross-device FL, only a small fraction of available
-clients participate in each round due to device availability and
-bandwidth constraints.
-In cross-silo deployments of the kind considered in this thesis, where
-the total number of clients is small (three simulated hospital nodes),
-all clients participate in every round, simplifying convergence
-analysis and eliminating the client-dropout variability that
-complicates cross-device FL \cite{kairouz2021advances}.
-
-\subsection{Local Training at Client Institutions}
 \label{sec:local-training}
+\label{sec:comm-rounds}
 
-At the commencement of each communication round $t$, every selected
-client $k \in \mathcal{S}^{(t)}$ receives the current global parameter
-vector $\mathbf{w}^{(t)}$ from the server and initialises its local
-model with this shared starting point.
-The client then performs a fixed number $E$ of local optimisation
-steps using mini-batch stochastic gradient descent (SGD) over its
-private dataset $\mathcal{D}_k$, minimising the local empirical risk
-$F_k(\mathbf{w})$ defined in equation~\eqref{eq:local-risk}.
-
-The choice of $E$ governs the trade-off between communication
-efficiency and optimisation quality.
-A single local step ($E = 1$) reduces to synchronous distributed SGD
-and requires a communication round after every gradient computation,
-incurring high bandwidth costs.
-Multiple local steps ($E > 1$) amortise the communication overhead
-across more computation but introduce \emph{client drift}: because
-each client optimises its local objective rather than the global one,
-the local model moves away from the global optimum at a rate that
-depends on the statistical heterogeneity of the local data distribution
-\cite{kairouz2021advances}.
-In the non-IID setting characteristic of multi-hospital deployments --
-where patient demographics, scanner protocols, and subtype prevalence
-differ across sites -- client drift is a primary source of convergence
-degradation and motivates the regularisation techniques discussed in
-Section~\ref{sec:aggregation}.
-
-In the breast MRI molecular subtype classification scenario of this
-thesis, each client applies the same ResNet-based backbone architecture
-initialised from the global weights, performing local updates using a
-cosine learning rate schedule with MixUp augmentation to mitigate the
-class imbalance arising from the non-IID partition of the 737-patient
-dataset across three hospital nodes.
-Progressive unfreezing of backbone layers during local training is
-employed to preserve low-level feature representations learned from the
-global model while adapting higher-level features to site-specific data
-characteristics.
+The canonical FL architecture is a two-tier hierarchy: a central coordination
+server that maintains the global model, schedules rounds, aggregates updates,
+and broadcasts the improved model; and $K$ clients, each holding a private local
+dataset $\mathcal{D}_k$ that remains on-site throughout training
+\cite{mcmahan2017communication}.
+In cross-silo deployments of the kind considered in this thesis, all three
+simulated hospital clients participate in every round, simplifying convergence
+analysis relative to cross-device settings \cite{kairouz2021advances}.
 
 \subsection{Global Model Aggregation on the Server}
 \label{sec:global-aggregation}
 
-Upon completion of local training, each participating client $k$
-transmits its updated local parameter vector $\mathbf{w}_k^{(t+1)}$
-to the central server.
-The server's aggregation function combines these client updates into a
-new global model that, under the weighted averaging scheme of FedAvg,
-corresponds to the sample-size-weighted mean of local parameters as
-given in equation~\eqref{eq:fedavg-aggregation}.
-The resulting global model $\mathbf{w}^{(t+1)}$ integrates knowledge
-from all participating clients without requiring any client to share
-its underlying data.
-
-The correctness of weighted averaging as an aggregation operator rests
-on the assumption that local models are trained from the same
-initialisation and that the global objective is the weighted sum of
-local objectives with weights proportional to dataset size
-\cite{mcmahan2017communication}.
-Under these conditions, averaging in parameter space approximates a
-single gradient step on the global objective.
-When the assumption of identical data distributions across clients is
-violated the non-IID case this approximation degrades, and the
-aggregated model may converge to a point that is suboptimal for all
-clients simultaneously.
-Alternative aggregation strategies that address this degradation are
-surveyed in Section~\ref{sec:aggregation}.
-
-A practical consideration in cross-silo medical imaging deployments is
-the size of the parameter vectors being transmitted.
-A ResNet-50 backbone comprises approximately 25 million floating-point
-parameters; transmitting full parameter vectors from three hospital
-clients per round is feasible within the bandwidth constraints of
-institutional networks, in contrast to the gradient-compression
-requirements of cross-device deployments involving thousands of
-participants \cite{kairouz2021advances,rieke2020future}.
-
-\subsection{Communication Rounds and Convergence}
-\label{sec:comm-rounds}
-
-Training in federated learning is structured as a sequence of discrete
-communication rounds rather than the continuous gradient flow of
-centralised training.
-Each round consists of four steps: the server broadcasts the current
-global model to selected clients; clients perform local optimisation;
-clients transmit updated parameters to the server; and the server
-aggregates the updates and prepares the next global model.
-This round structure introduces a fundamental coupling between the
-number of communication rounds $T$, the number of local steps $E$ per
-round, and the total computational budget available to each client.
-
-Convergence analysis for FedAvg under non-IID data distributions
-demonstrates that the algorithm converges at a rate that degrades as
-the degree of data heterogeneity -- measured by the gradient divergence
-$\|\nabla F_k(\mathbf{w}) - \nabla F(\mathbf{w})\|$ across clients --
-increases \cite{kairouz2021advances}.
-Intuitively, when local data distributions differ substantially, local
-gradient directions point towards different local optima, and their
-average after multiple local steps is a poor approximation to the
-global gradient.
-The practical consequence is that non-IID FL systems may require
-significantly more communication rounds to achieve a given target
-accuracy than an equivalent centralised system trained on the pooled
-dataset.
-
-In healthcare FL deployments, the number of communication rounds is
-also constrained by institutional factors beyond pure optimisation
-considerations: each round involves synchronisation across hospital
-sites that may operate on different schedules, under different
-computational loads, and subject to network availability constraints
-that do not arise in a single data centre.
-For the three-hospital simulation in this thesis, all clients are
-available synchronously, so round scheduling reduces to a hyperparameter
-choice; the interaction between round count, local epochs, and
-convergence on the non-IID breast MRI partition is reported in
-Chapter~3.
+Upon completing local training, each client transmits its updated parameter vector
+$\mathbf{w}_k^{(t+1)}$ to the server, which forms the sample-size-weighted average
+of equation~\eqref{eq:fedavg-aggregation}.
+When client distributions are non-IID, as in multi-hospital breast MRI
+classification, this averaging approximation degrades and the aggregated model
+may be suboptimal for all clients simultaneously, motivating the alternative
+strategies surveyed in Section~\ref{sec:aggregation}.
 
 
 % ============================================================
@@ -648,33 +289,39 @@ arithmetic mean:
 The principal hyperparameters controlling FedAvg are the fraction of
 clients selected per round $C \in (0, 1]$, the number of local epochs
 $E$, and the local mini-batch size $B$.
-McMahan~et~al.\ showed empirically that increasing $E$ and decreasing $B$
-reduces the number of communication rounds required to reach a target
-accuracy by one to two orders of magnitude compared to naive
-federated stochastic gradient descent, making computation more
-efficient relative to communication \cite{mcmahan2017communication}.
+McMahan~et~al.\ demonstrated through experiments on MNIST and a
+Shakespeare language modelling task that concentrating more computation
+locally — by increasing the number of local epochs per round or reducing
+the mini-batch size — can shrink the total number of communication rounds
+needed to reach a target accuracy by between one and two orders of
+magnitude relative to a single-step federated SGD baseline,
+establishing that the ratio of local computation to network communication
+is the primary lever for reducing the wall-clock cost of federated
+training \cite{mcmahan2017communication}.
 
-Despite its simplicity and strong performance under
-independent and identically distributed (IID) data, FedAvg exhibits
-a well-documented weakness when client data distributions are
-heterogeneous.
-When local objectives $F_k$ diverge substantially, as is the case in
-multi-hospital breast MRI classification where subtype prevalences
-differ across institutions, the local gradient directions point towards
-different local optima.
-Performing multiple local SGD steps before aggregation causes the
-local models to drift away from the global optimum, a phenomenon
-termed \emph{client drift} \cite{kairouz2021advances,arbaoui2025survey}.
-The weighted average of drifted models may not approximate the globally
-optimal parameters, resulting in degraded convergence and lower final
-accuracy under non-IID distributions.
+FedAvg's convergence properties deteriorate markedly when the data
+distributions across clients are statistically heterogeneous.
+Under non-IID conditions, each client's local risk function $F_k$ has a
+distinct minimiser; multiple rounds of local gradient descent therefore
+steer each client's model progressively further from the global solution
+in a client-specific direction.
+The aggregated model, formed by averaging these divergent local updates,
+is a poor approximation of the true global optimum — a systematic failure
+mode that Karimireddy~et~al.\ formalised as \emph{client drift} and
+proved constitutes an inherent limitation of FedAvg regardless of
+step-size or batch-size choices
+\cite{karimireddy2020scaffold,kairouz2021advances,arbaoui2025survey}.
+This degradation is directly observable in the breast MRI setting studied
+here, where subtype prevalences differ substantially across the three
+simulated hospital clients.
 The algorithms described in the following subsections were designed
 specifically to correct this shortcoming.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.55\linewidth]{figures/mcmahan2017_algorithm1.png}
-  \caption{The FederatedAveraging (FedAvg) algorithm.
+  \caption[The FedAvg algorithm]{The FederatedAveraging
+    (FedAvg) algorithm.
     The server coordinates rounds and aggregates client updates;
     each client runs $E$ local epochs of SGD on its private dataset
     before returning updated parameters $\mathbf{w}_k^{(t+1)}$.
@@ -713,15 +360,18 @@ global model is updated by the weighted average of the locally trained
 parameter vectors.
 The benefit of FedProx lies entirely in the improved quality of the
 local updates delivered to the server.
-Li~et~al.\ proved that FedProx converges to a neighbourhood of the
-global optimum under general non-IID data distributions, providing
-the first theoretical convergence guarantee for federated optimisation
-in the heterogeneous setting \cite{li2020fedprox}.
+Li~et~al.\ provided a formal analysis showing that FedProx's proximal
+regularisation is sufficient to guarantee convergence even when client
+datasets are statistically heterogeneous, establishing that the iterates
+approach a bounded region around the global solution whose radius is
+controlled by the proximal coefficient and the degree of client
+heterogeneity \cite{li2020fedprox}.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.80\linewidth]{figures/li2020_fedprox_convergence.png}
-  \caption{Effect of data heterogeneity on convergence for FedAvg
+  \caption[FedAvg versus FedProx convergence]{Effect of
+    data heterogeneity on convergence for FedAvg
     and FedProx across synthetic non-IID partitions.
     As the degree of statistical heterogeneity increases, FedAvg
     convergence degrades substantially, while the proximal
@@ -737,84 +387,30 @@ while small values permit more local drift and approach the behaviour
 of FedAvg.
 
 
-% ------------------------------------------------------------
-\subsection{FedNova}
-\label{sec:fednova}
-% ------------------------------------------------------------
-
-FedNova (Federated Normalised Averaging) was proposed by Li~et~al.\
-\cite{li2020fednova} to address a subtle but consequential problem
-in FedAvg known as \emph{objective inconsistency}.
-When clients perform different numbers of local update steps, either
-because they have datasets of different sizes or because they use
-different batch sizes, the weighted average computed by FedAvg no
-longer corresponds to a step in the direction of the gradient of the
-global objective.
-The updates from clients that performed more local steps are implicitly
-given higher effective weight in the aggregate, biasing convergence
-away from the globally optimal solution even when data are IID
-\cite{li2020fednova}.
-
-FedNova corrects this inconsistency by normalising each client's
-update before aggregation.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.76\linewidth]{figures/li2020_fednova_inconsistency.png}
-  \caption{Illustration of the objective inconsistency problem in
-    FedAvg when clients perform different numbers of local update
-    steps.
-    The aggregated update direction deviates from the true global
-    gradient direction.
-    FedNova eliminates this bias by normalising each client's
-    update by its local step count before aggregation.
-    Adapted from \cite{li2020fednova}.}
-  \label{fig:fednova-inconsistency}
-\end{figure}
-
-Let $\tau_k$ denote the number of local update steps performed by
-client $k$ in a given round.
-Instead of aggregating the raw local model $\mathbf{w}_k^{(t+1)}$,
-the server aggregates the normalised update:
-\begin{equation}
-  \mathbf{d}_k
-  = \frac{1}{\tau_k}
-    \bigl(\mathbf{w}^{(t)} - \mathbf{w}_k^{(t+1)}\bigr),
-  \label{eq:fednova-update}
-\end{equation}
-and the new global model is:
-\begin{equation}
-  \mathbf{w}^{(t+1)}
-  = \mathbf{w}^{(t)}
-    - \eta_g \sum_{k \in \mathcal{S}^{(t)}}
-      \frac{n_k}{\sum_{j} n_j}\, \tau_k\, \mathbf{d}_k,
-  \label{eq:fednova-agg}
-\end{equation}
-where $\eta_g$ is a global learning rate.
-This normalisation decouples the aggregation weight of each client
-from the number of local steps it performed, restoring consistency
-with the global objective and eliminating the convergence bias
-identified in FedAvg \cite{li2020fednova,kairouz2021advances}.
-FedNova is particularly relevant to cross-silo healthcare scenarios
-where client hospitals may have substantially different dataset sizes
-and thus naturally perform different numbers of local gradient steps
-per round.
-
+FedNova \cite{li2020fednova} addresses objective inconsistency when clients perform
+different numbers of local update steps; since all clients in this work use a fixed
+$E=2$ local epochs per round, this inconsistency is absent by construction and
+FedNova is excluded from the experimental comparison.
 
 % ------------------------------------------------------------
 \subsection{SCAFFOLD}
 \label{sec:scaffold}
 % ------------------------------------------------------------
 
-SCAFFOLD (Stochastic Controlled Averaging for Federated Learning)
-was introduced by Karimireddy~et~al.\ \cite{karimireddy2020scaffold}
-with the explicit goal of eliminating client drift through a
-\emph{variance reduction} mechanism.
+SCAFFOLD — Stochastic Controlled Averaging for Federated Learning —
+was proposed by Karimireddy~et~al.\ as a principled correction to
+the client drift problem \cite{karimireddy2020scaffold}.
+Its central innovation is to maintain gradient correction terms, known
+as \emph{control variates}, at both the server and each client,
+allowing every local update to track the global gradient direction
+rather than being pulled exclusively toward the client's own local
+objective.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.78\linewidth]{figures/karimireddy2020_scaffold_drift.png}
-  \caption{Client drift in FedAvg illustrated for two clients with
+  \caption[Client drift in FedAvg]{Client drift in FedAvg
+    illustrated for two clients with
     heterogeneous data distributions.
     Each client's local SGD steps pull its model toward its own
     local optimum, and the weighted average of the two drifted
@@ -859,9 +455,11 @@ The server aggregates model updates and variate updates separately,
 updating the global model by the mean of client model submissions and
 the global variate by the mean of client variate corrections.
 
-Karimireddy~et~al.\ proved that SCAFFOLD converges at the same
-asymptotic rate as centralised SGD regardless of the degree of data
-heterogeneity, a stronger guarantee than either FedAvg or FedProx
+Karimireddy~et~al.\ established a formal convergence guarantee showing
+that SCAFFOLD's communication complexity matches that of centralised
+stochastic gradient descent up to constants, and that this rate holds
+independently of the gradient dissimilarity between clients — a property
+that neither FedAvg nor FedProx can achieve
 \cite{karimireddy2020scaffold}.
 The cost of this guarantee is additional communication per round:
 each client must transmit both its updated model and its updated
@@ -876,45 +474,15 @@ acceptable \cite{kairouz2021advances}.
 \label{sec:personalised-fl}
 % ------------------------------------------------------------
 
-The aggregation algorithms described in the preceding subsections
-all pursue a single shared global model as their training objective.
-In federated medical imaging, however, the goal of a single model
-that performs uniformly across all participating institutions may
-be neither achievable nor desirable.
-If data distributions across hospitals differ fundamentally, for
-instance because patient demographics, scanner hardware, and imaging
-protocols vary substantially, forcing all local models to converge
-to a common parameter vector may result in a model that performs
-adequately on average but poorly at each individual site
-\cite{kairouz2021advances,ghosh2026advancements}.
-
-Personalised federated learning (PFL) relaxes the single-model
-objective by allowing each client to maintain its own local model
-that is informed by, but not identical to, the global model.
-Several strategies have been proposed to achieve this.
-In the \emph{local fine-tuning} approach, each client takes the
-aggregated global model and performs additional local gradient steps
-on its own data before deployment, adapting the global representation
-to its local distribution without disrupting the federated training
-process \cite{kairouz2021advances}.
-In \emph{mixture} approaches, a convex combination of the global
-model and the client's own locally trained model is used as the
-final deployment model, with the mixing coefficient treated as a
-hyperparameter \cite{arbaoui2025survey}.
-More recent work employs meta-learning formulations in which the
-global model is trained to serve as a good initialisation for
-rapid local adaptation, a strategy well suited to cross-silo
-scenarios where each client's distribution is stable over time
-\cite{ghosh2026advancements}.
-
-In the breast MRI molecular subtype classification task studied in
-this thesis, the three simulated hospital clients hold partitions
-with different subtype prevalences.
-A personalised federated approach that permits per-hospital adaptation
-after global aggregation is therefore a natural candidate for
-improving per-site classification accuracy relative to the FedAvg
-baseline, and is included in the experimental comparison reported
-in Chapter~4.
+Personalised federated learning (PFL) relaxes the single-model objective by
+allowing each client to maintain its own local model informed by, but not
+identical to, the global aggregate \cite{kairouz2021advances,ghosh2020clustered}.
+Representative strategies include local fine-tuning (additional gradient steps
+on local data after aggregation), mixture models (a convex combination of global
+and local parameters), and meta-learning initialisations designed for rapid local
+adaptation \cite{arbaoui2025survey}.
+Personalised FL is not evaluated in this thesis; it is identified as a direction
+for future work in the General Conclusion.
 
 
 % ------------------------------------------------------------
@@ -996,7 +564,7 @@ generally acceptable \cite{karimireddy2020scaffold,kairouz2021advances}.
 Personalised federated learning strategies complement the global
 aggregation step by allowing per-institution adaptation and are
 particularly attractive when site-specific distributions are
-stable and clinically meaningful \cite{ghosh2026advancements}.
+stable and clinically meaningful \cite{ghosh2020clustered}.
 
 The experimental evaluation in Chapter~4 compares FedAvg, FedProx,
 and a local fine-tuning personalisation strategy on the breast MRI
@@ -1102,210 +670,37 @@ contextualise the performance of the primary strategies.
 %  \cite{arbaoui2025survey}           \cite{kaissis2020secure}
 %  \cite{rieke2020future}             \cite{sheller2020federated}
 %  \cite{guan2024federated}           \cite{nguyen2022federated}
-%  \cite{ghosh2026advancements}       \cite{yang2019federated}
+%  \cite{ghosh2020clustered}       \cite{yang2019federated}
 %  \cite{li2020fedprox}               \cite{li2020fednova}
 %  \cite{karimireddy2020scaffold}
 % ============================================================
 
 
 % ============================================================
-\section{Communication Protocols and Optimization}
+\section{Communication Protocols and Optimisation}
 \label{sec:communication}
 % ============================================================
 
-Communication cost is one of the primary practical constraints in
-federated learning.
-Each communication round requires the server to broadcast the global
-model to selected clients and to receive an updated model vector from
-each of them.
-For deep convolutional networks with millions of parameters, as are
-typical in medical image classification, a single round may involve
-transferring hundreds of megabytes per client.
-Over tens to hundreds of rounds, the cumulative bandwidth consumption
-can become prohibitive, particularly in cross-silo healthcare settings
-where hospital network infrastructure may be shared with clinical
-operations and subject to strict quality-of-service constraints
-\cite{kairouz2021advances,arbaoui2025survey}.
-This section surveys the sources of communication overhead in FL and
-the principal techniques that have been proposed to reduce it.
-
-
-% ------------------------------------------------------------
-\subsection{Communication Overhead in Federated Learning}
+\label{sec:comm-overview}
 \label{sec:comm-overhead}
-% ------------------------------------------------------------
-
-In a standard FedAvg run with $K$ clients and model dimensionality
-$d$, each communication round requires the server to transmit
-$d$ floating-point values to each selected client and to receive
-$d$ values in return.
-For a ResNet-50 model with approximately 25 million parameters
-stored as 32-bit floats, a single round involves roughly 100 MB of
-upload and download traffic per client.
-With three hospital clients and 100 training rounds, the aggregate
-communication volume already exceeds 60 GB, an amount that may
-saturate clinical network links and incur measurable latency
-\cite{mcmahan2017communication}.
-
-Two distinct bottlenecks contribute to this overhead.
-The \emph{uplink bottleneck} arises because hospital clients
-typically operate on asymmetric network connections where upload
-bandwidth is considerably smaller than download bandwidth.
-The \emph{round-trip latency bottleneck} arises because synchronous
-FL requires the server to wait for all selected clients to complete
-their local training and return their updates before proceeding to
-the next round; any client that is slow or temporarily unavailable
-delays the entire round.
-McMahan~et~al.\ showed that increasing the number of local epochs
-$E$ per round substantially reduces the total number of rounds
-required to achieve a given accuracy, thereby reducing the total
-communication volume by up to two orders of magnitude relative to
-communicating after every local gradient step
-\cite{mcmahan2017communication}.
-
-
-% ------------------------------------------------------------
-\subsection{Gradient Compression Techniques}
 \label{sec:compression}
-% ------------------------------------------------------------
-
-Gradient and model compression techniques reduce the volume of data
-transmitted per round by exploiting redundancy in the parameter
-updates.
-Kone\v{c}n\'y~et~al.\ introduced two complementary approaches:
-\emph{structured updates}, in which the client constrains its local
-update to a low-dimensional subspace parameterised by a random
-matrix, and \emph{sketched updates}, in which the full update is
-computed and then compressed using a lossy encoding scheme before
-transmission \cite{konecny2016federated}.
-Both approaches reduce uplink communication at the cost of a slight
-degradation in model quality per round, a trade-off that is typically
-acceptable given the large reduction in bandwidth consumption.
-
-Subsequent work has extended these ideas to a variety of compression
-operators, including random subsampling of coordinates, random rotation
-followed by subsampling, and low-rank matrix factorisation
-\cite{kairouz2021advances}.
-In the medical imaging context, the high dimensionality of convolutional
-network parameters makes compression particularly attractive.
-However, compression must be applied with care in federated settings:
-naive compression of client updates can introduce systematic bias
-into the aggregated gradient, slowing or destabilising convergence.
-Error-feedback mechanisms, which accumulate the compression error at
-the client and add it to the next round's update, have been shown to
-eliminate this bias and restore convergence rates comparable to
-uncompressed training \cite{kairouz2021advances}.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.82\linewidth]{figures/konecny2016_compression.png}
-  \caption{Structured and sketched update strategies for reducing
-    client-to-server communication in federated learning.
-    Structured updates constrain the local update to a low-dimensional
-    subspace; sketched updates compute the full update and then apply
-    lossy compression before transmission.
-    Both approaches achieve substantial bandwidth reduction with
-    negligible impact on model accuracy.
-    Adapted from \cite{konecny2016federated}.}
-  \label{fig:konecny-compression}
-\end{figure}
-
-
-% ------------------------------------------------------------
-\subsection{Quantization and Sparsification}
 \label{sec:quantization}
-% ------------------------------------------------------------
-
-Quantization reduces communication cost by representing each
-parameter or gradient value with fewer bits than the standard
-32-bit floating-point format.
-\emph{Stochastic quantization} replaces each real-valued coordinate
-with a randomly rounded integer from a discrete codebook, producing
-an unbiased estimate of the original value with substantially reduced
-storage and transmission requirements
-\cite{konecny2016federated,kairouz2021advances}.
-For example, reducing from 32-bit to 8-bit fixed-point representation
-yields a fourfold reduction in upload volume with minimal impact on
-model accuracy when applied after a brief warm-up phase of full
-precision training.
-
-Sparsification complements quantization by transmitting only a
-subset of parameter coordinates per round.
-In \emph{top-$k$ sparsification}, each client computes its full
-local update and then retains only the $k$ coordinates with the
-largest absolute values, transmitting a sparse vector that encodes
-both the indices and values of the selected coordinates.
-With $k \ll d$, the reduction in communication volume can be
-substantial.
-As with compression, error feedback is essential to prevent the
-dropped coordinates from permanently biasing the global model
-\cite{kairouz2021advances}.
-In the breast MRI classification setting of this thesis, model
-updates are transmitted without compression or quantization to
-maintain numerical stability during the experimental evaluation;
-compression is identified as a direction for future work in
-Chapter~5.
-
-
-% ------------------------------------------------------------
-\subsection{Synchronous versus Asynchronous Communication}
 \label{sec:sync-async}
-% ------------------------------------------------------------
 
-The canonical FedAvg protocol operates synchronously: the server
-waits for all selected clients to return their updates before
-computing the aggregate and proceeding to round $t+1$.
-Synchronous aggregation is straightforward to implement and analyse
-theoretically, but it is sensitive to \emph{stragglers}, clients
-that take significantly longer than others to complete local training
-due to hardware limitations, network congestion, or large local
-datasets \cite{arbaoui2025survey}.
-In cross-silo healthcare settings where all hospital clients are
-dedicated institutional machines, straggler effects are less severe
-than in cross-device settings, but they remain a source of idle
-time at the server.
-
-Asynchronous aggregation addresses this limitation by allowing the
-server to update the global model as soon as any client returns its
-update, without waiting for the remaining clients.
-The server maintains a version counter and applies each client's
-update to whichever version of the global model is current at the
-time of receipt.
-Asynchronous protocols can improve hardware utilisation and reduce
-wall-clock training time, but they introduce \emph{staleness}: a
-client that trained on model version $t$ may return its update
-when the server has already advanced to version $t + s$, and
-applying a stale update can introduce noise into the global model
-\cite{arbaoui2025survey,kairouz2021advances}.
-
-Semi-synchronous and semi-asynchronous protocols interpolate between
-the two extremes by setting a deadline after which the server
-aggregates whatever updates have arrived and discards the rest.
-This \emph{bounded staleness} approach limits the impact of
-stragglers while retaining most of the theoretical guarantees of
-synchronous aggregation.
-As illustrated in Figure~\ref{fig:aggregation-classification}, the
-synchronisation mode is one of four axes along which FL aggregation
-methods can be classified, alongside federation scale, network
-topology, and federation motivation \cite{arbaoui2025survey}.
-In this thesis, synchronous aggregation is used throughout the
-experimental evaluation, consistent with the cross-silo setting
-where all three hospital clients are assumed to be persistently
-available.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.78\linewidth]{figures/arbaoui2025_fig8_aggregation.png}
-  \caption{%
-    Broad classification of federated learning aggregation strategies
-    along four axes: federation scale (cross-device or cross-silo),
-    federation synchronisation (synchronous, asynchronous,
-    semi-synchronous, or semi-asynchronous), federation architecture
-    (centralised, decentralised, or hierarchical), and federation
-    motivation (process-related, model-related, or system-related).
-    Adapted from \cite{arbaoui2025survey}.}
-  \label{fig:aggregation-classification}
-\end{figure}
+Communication cost is a recognised constraint in federated learning: each round
+requires transmitting the full model parameter vector to and from each selected
+client \cite{mcmahan2017communication,kairouz2021advances}.
+For ConvNeXt-Nano with 15.18 million parameters, a single round requires
+approximately 58~MB per client at 32-bit precision; over $R=20$ rounds and $K=3$
+clients, the total communication volume is approximately 3.5~GB.
+Gradient compression \cite{konecny2016federated}, quantisation, and asynchronous
+protocols have been proposed to reduce this overhead \cite{kairouz2021advances},
+but are not investigated in this thesis: the focus is on convergence quality
+under non-IID conditions rather than communication efficiency.
+This thesis uses synchronous aggregation throughout, consistent with the
+cross-silo setting where all three hospital clients are persistently available.
+Communication optimisation is identified as a direction for future work in the
+General Conclusion.
 
 
 % ============================================================
@@ -1313,64 +708,29 @@ available.
 \label{sec:privacy-security}
 % ============================================================
 
-Federated learning was designed with privacy in mind: by keeping
-raw patient data at each client institution, it removes the most
-direct route through which sensitive information could be exposed.
-However, the model parameters exchanged between clients and server
-are not informationally neutral; they encode statistical properties
-of the training data and can, under certain conditions, be exploited
-by a party seeking to infer private information
-\cite{kaissis2020secure}.
-Understanding the threat landscape and the cryptographic and
-statistical mechanisms available to counter it is essential for
-deploying FL responsibly in a clinical context.
-
-
-% ------------------------------------------------------------
-\subsection{Threat Models}
+\label{sec:privacy-overview}
 \label{sec:threat-models}
-% ------------------------------------------------------------
+\label{sec:differential-privacy}
+\label{sec:secure-aggregation}
+\label{sec:homomorphic-enc}
 
-Kaissis~et~al.\ provide a comprehensive taxonomy of attack vectors
-relevant to machine learning in medical imaging, reproduced in
-simplified form in Figure~\ref{fig:kaissis-privacy}
-\cite{kaissis2020secure}.
-Attacks can be directed against the dataset or against the algorithm.
-
-Attacks against the dataset include \emph{re-identification attacks},
-in which an adversary determines an individual's identity from
-anonymised records using auxiliary information; \emph{dataset
-reconstruction attacks}, in which characteristics of training examples
-are derived from aggregate statistics without direct dataset access;
-and \emph{membership inference attacks}, in which an adversary
-determines whether a specific individual's data was used in training
-\cite{kaissis2020secure}.
-In the federated setting, these attacks can be carried out by a
-curious server that inspects the parameter updates received from
-clients, or by a malicious client that observes the updates broadcast
-by the server.
-
-Attacks against the algorithm include \emph{model inversion attacks},
-in which private training data are reconstructed from the learned
-model weights by solving an optimisation problem in input space;
-\emph{data poisoning attacks}, in which a malicious client
-injects corrupted training examples to degrade global model accuracy
-or introduce targeted misclassification; and \emph{model poisoning
-attacks}, in which a malicious client directly manipulates its
-uploaded parameter vector rather than its training data
-\cite{kaissis2020secure,kairouz2021advances}.
-The free-rider attack is a specific form of model poisoning in which
-a client uploads uninformative or random updates to the server while
-benefiting from the global model without contributing genuine
-gradients.
+Federated learning provides a first layer of privacy by keeping raw data at each
+institution.
+Additional formal guarantees can be obtained through Differential Privacy
+(DP-SGD, \cite{abadi2016deep}), Secure Aggregation \cite{bonawitz2017practical},
+and Homomorphic Encryption \cite{kaissis2020secure}, as illustrated in
+Figure~\ref{fig:kaissis-privacy}.
+The FedMRI application (Appendix~\ref{app:fedmri}) implements a four-layer privacy
+enforcement architecture.
+Formal cryptographic privacy mechanisms (DP, SecAgg) are not implemented in the
+experimental study and are identified as a direction for future work.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figures/kaissis2020_fig1_privacy.png}
-  \caption{%
+  \caption[Privacy-preserving techniques in medical imaging AI]{%
     Schematic overview of the relationships between data, algorithms,
-    actors, and privacy-preserving techniques in secure medical
-    imaging AI.
+    actors, and privacy-preserving techniques in secure medical imaging AI.
     Federated learning, differential privacy, homomorphic encryption,
     and secure multi-party computation are positioned as complementary
     defences against distinct attack vectors.
@@ -1379,282 +739,59 @@ gradients.
 \end{figure}
 
 
-% ------------------------------------------------------------
-\subsection{Differential Privacy}
-\label{sec:differential-privacy}
-% ------------------------------------------------------------
-
-Differential privacy (DP) provides a mathematically rigorous
-framework for bounding the amount of information that any single
-training example contributes to the learned model.
-A randomised mechanism $\mathcal{M}$ satisfies
-$(\varepsilon, \delta)$-differential privacy if, for any two
-datasets differing in a single example and any output set $S$:
-\begin{equation}
-  \Pr\bigl[\mathcal{M}(\mathcal{D}) \in S\bigr]
-  \;\leq\;
-  e^{\varepsilon}\,
-  \Pr\bigl[\mathcal{M}(\mathcal{D}') \in S\bigr]
-  + \delta,
-  \label{eq:dp}
-\end{equation}
-where $\varepsilon$ controls the privacy budget (smaller values
-imply stronger privacy) and $\delta$ is the probability of a
-catastrophic privacy failure \cite{abadi2016deep}.
-
-In the federated setting, DP is typically implemented by clipping
-the norm of each client's gradient update to a maximum value $C$
-and then adding calibrated Gaussian noise before transmission:
-\begin{equation}
-  \tilde{\mathbf{g}}_k
-  = \frac{\mathbf{g}_k}{\max(1,\, \lVert \mathbf{g}_k \rVert_2 / C)}
-    + \mathcal{N}(0,\, \sigma^2 C^2 \mathbf{I}),
-  \label{eq:dp-noise}
-\end{equation}
-where $\sigma$ is the noise multiplier whose value determines the
-privacy-utility trade-off \cite{abadi2016deep,kairouz2021advances}.
-The clipping step bounds the sensitivity of the update to the
-presence of any single training example, while the noise injection
-prevents the server or any eavesdropper from inferring that
-sensitivity from the observed update.
-Larger values of $\sigma$ provide stronger privacy guarantees
-at the cost of noisier gradients and slower convergence.
-In medical imaging applications, where training datasets are
-relatively small and each clinical case may be unique, the
-noise-accuracy trade-off is particularly acute and requires
-careful calibration \cite{kaissis2020secure}.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.70\linewidth]{figures/abadi2016_dpsgd.png}
-  \caption{The DP-SGD algorithm of Abadi~et~al.\ Each training step
-    clips the per-example gradient to bound its $\ell_2$ norm,
-    then adds calibrated Gaussian noise before the parameter update.
-    The privacy cost accumulates across steps and is tracked by the
-    moments accountant, yielding an $(\varepsilon,\delta)$-DP guarantee
-    at the end of training.
-    Reproduced from \cite{abadi2016deep}.}
-  \label{fig:dpsgd-algorithm}
-\end{figure}
-
-
-% ------------------------------------------------------------
-\subsection{Secure Aggregation}
-\label{sec:secure-aggregation}
-% ------------------------------------------------------------
-
-Secure aggregation protocols allow the server to compute the sum
-or weighted average of client updates without observing any
-individual client's update in the clear.
-The protocol introduced by Bonawitz~et~al.\ uses a combination
-of secret sharing and pairwise masking to ensure that the server
-receives only the aggregate of all client updates, with each
-individual contribution masked by random values that cancel
-in the sum \cite{bonawitz2017practical}.
-
-Formally, each pair of clients $(i, j)$ agrees on a shared random
-mask $\mathbf{r}_{ij}$ using a Diffie-Hellman key exchange.
-Client $i$ adds $\mathbf{r}_{ij}$ to its update for all $j > i$
-and subtracts $\mathbf{r}_{ij}$ for all $j < i$.
-When the server sums all masked updates, the pairwise masks
-cancel exactly and the server recovers the unmasked aggregate,
-but cannot attribute any portion of the aggregate to any individual
-client \cite{bonawitz2017practical}.
-The protocol is robust to dropout: if a client fails to upload
-its update, the remaining clients can reconstruct the missing masks
-using a threshold secret-sharing scheme.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.80\linewidth]{figures/bonawitz2017_secagg.png}
-  \caption{Communication diagram for practical secure aggregation.
-    Each pair of clients establishes a shared random mask via
-    Diffie-Hellman key exchange; the masks cancel in the server's
-    sum so that only the aggregate is revealed.
-    The protocol tolerates client dropout through threshold
-    secret sharing.
-    Adapted from \cite{bonawitz2017practical}.}
-  \label{fig:secagg-protocol}
-\end{figure}
-
-Secure aggregation is complementary to differential privacy:
-DP provides statistical guarantees against inference from the
-aggregate, while secure aggregation ensures that the server
-never sees individual updates even in the clear.
-Combining both mechanisms provides defence in depth appropriate
-for clinical deployments \cite{kaissis2020secure,kairouz2021advances}.
-
-
-% ------------------------------------------------------------
-\subsection{Homomorphic Encryption}
-\label{sec:homomorphic-enc}
-% ------------------------------------------------------------
-
-Homomorphic encryption (HE) enables arithmetic operations to be
-performed directly on ciphertext, so that the result of decrypting
-the output equals what would have been obtained by performing the
-same operation on the plaintext.
-In the federated learning context, clients encrypt their model
-updates before uploading them; the server aggregates the encrypted
-values using the additive homomorphism property; and the resulting
-aggregate is decrypted only once, by a designated party holding
-the decryption key \cite{kaissis2020secure}.
-
-The primary advantage of HE over masking-based secure aggregation
-is that it provides information-theoretic rather than
-computational security: even an adversary with unbounded
-computational resources cannot infer anything about individual
-updates from the ciphertext.
-The primary disadvantage is computational cost: homomorphic
-operations on large parameter vectors are orders of magnitude
-slower than their plaintext equivalents, and the ciphertext
-expansion factor can increase communication volume substantially
-\cite{kairouz2021advances}.
-Partially homomorphic schemes, which support either addition or
-multiplication but not both, offer a practical compromise for
-federated averaging, which requires only addition.
-The adoption of HE in production federated medical imaging systems
-remains limited but is an active area of research, particularly
-for settings where the server cannot be assumed to be honest
-\cite{kaissis2020secure}.
-
-
 % ============================================================
 \section{Convergence and Stability Challenges}
 \label{sec:convergence}
 % ============================================================
 
-Convergence in federated learning is substantially more complex
-than in centralised training because the optimisation landscape
-is shaped by the interaction between global aggregation and
-local client objectives that differ from one another.
-This section analyses the two principal sources of instability
-in federated training: statistical heterogeneity arising from
-non-IID data distributions, and system heterogeneity arising
-from differences in client hardware and availability.
-
+Convergence in federated learning is more complex than in centralised training
+because the optimisation landscape is shaped by the interaction between global
+aggregation and local client objectives that may differ substantially.
 
 % ------------------------------------------------------------
 \subsection{Statistical Heterogeneity: Non-IID Data}
 \label{sec:non-iid}
 % ------------------------------------------------------------
 
-The fundamental assumption underlying FedAvg is that the weighted
-average of locally optimal parameter vectors approximates the globally
-optimal parameter vector.
-This approximation is accurate when client data distributions are
-similar, but degrades as the distributions diverge.
-When client data distributions are non-identical, the local objective
-$F_k$ of each client has a different minimiser, and performing
-multiple local gradient steps pushes the local model towards that
-local minimiser and away from the global optimum.
-The aggregated model, being a weighted combination of models that
-have drifted in different directions, may not represent a good
-solution to any client's local objective or to the global objective
+When client data distributions are non-identical, each client's local objective
+$F_k$ has a different minimiser; performing multiple local gradient steps pushes
+the local model toward that minimiser and away from the global optimum
 \cite{kairouz2021advances,li2020fedprox}.
-
-In the breast MRI molecular subtype classification scenario of this
-thesis, non-IID conditions arise because the three simulated hospital
-clients hold partitions of the dataset in which the four subtype
-classes are represented with different relative frequencies.
-Figure~\ref{fig:arbaoui-scales} illustrates the distinction between
-cross-device and cross-silo federation, highlighting the greater
-data heterogeneity typical of institutional silos relative to
-consumer device distributions \cite{arbaoui2025survey}.
-The degree of non-IID-ness can be parameterised by the Dirichlet
-concentration parameter $\alpha$: as $\alpha \to 0$, each client
-holds data from only one class; as $\alpha \to \infty$, the
-distribution approaches the IID setting.
-The experimental evaluation in Chapter~4 examines convergence
-under the partition strategy employed for the 737-patient cohort.
+The aggregated model, being a weighted combination of drifted models, may not
+represent a good solution to either the local or global objective.
+In the breast MRI setting of this thesis, non-IID conditions arise because the
+three simulated hospitals hold partitions with different subtype prevalences.
+The degree of heterogeneity is parameterised by the Dirichlet concentration
+$\alpha$: as $\alpha \to 0$ each client approaches single-class data; as
+$\alpha \to \infty$ the distribution approaches IID.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figures/arbaoui2025_fig9_scales.png}
-  \caption{%
+  \caption[Cross-device versus cross-silo FL]{%
     Comparison of cross-device and cross-silo federation scales.
     In the cross-silo setting relevant to this thesis, clients are
-    institutional machines with powerful computational resources,
-    potentially large and heterogeneous local datasets, and no more
-    than 100 participants.
+    institutional machines with potentially large and heterogeneous datasets.
     Adapted from \cite{arbaoui2025survey}.}
   \label{fig:arbaoui-scales}
 \end{figure}
 
-
-% ------------------------------------------------------------
-\subsection{System Heterogeneity}
-\label{sec:system-heterogeneity}
-% ------------------------------------------------------------
-
-System heterogeneity refers to differences between clients in
-computational capacity, memory, network bandwidth, and availability.
-In cross-device settings, system heterogeneity is extreme: a
-federation may include devices ranging from high-end smartphones
-to low-end IoT sensors, and any device may become unavailable at
-any time due to battery depletion or network disconnection
-\cite{kairouz2021advances}.
-In cross-silo healthcare settings, system heterogeneity is less
-severe but not negligible: different hospital imaging departments
-may operate different GPU generations, different storage
-architectures, and different local preprocessing pipelines, all
-of which affect the speed of local training and the volume of
-data processed per round.
-
-System heterogeneity interacts with statistical heterogeneity to
-produce the straggler problem described in Section~\ref{sec:sync-async}:
-the clients that take longest to complete local training are often
-those with the smallest computational budgets, and these clients
-may also have the most distinctive data distributions.
-Excluding stragglers from aggregation to avoid blocking the
-server therefore introduces a systematic bias, as the excluded
-clients' data distributions are underrepresented in the global
-model \cite{li2020fedprox,kairouz2021advances}.
-FedProx addresses this by allowing partial work: clients that
-cannot complete the full $E$ local epochs before a deadline may
-submit their partially trained parameters, which are still
-informative contributions to the proximal objective in
-equation~\eqref{eq:fedprox}.
-
-
 % ------------------------------------------------------------
 \subsection{Strategies to Stabilise Convergence}
 \label{sec:convergence-strategies}
+\label{sec:system-heterogeneity}
 % ------------------------------------------------------------
 
-Several complementary strategies have been developed to stabilise
-FL convergence under heterogeneous conditions.
-
-The proximal regularisation approach of FedProx and the
-variance-reduction approach of SCAFFOLD were described in
-Section~\ref{sec:aggregation}.
-Beyond these, \emph{server-side momentum} has been shown to
-accelerate convergence by applying momentum to the global
-update direction across rounds, analogously to how momentum
-accelerates stochastic gradient descent in centralised training
-\cite{kairouz2021advances}.
-\emph{Adaptive server optimisers}, such as applying Adam or
-AdaGrad to the server-side update step, allow the global
-learning rate to adapt to the curvature of the aggregated
-gradient signal, improving stability when client updates are
-noisy or heterogeneous \cite{kairouz2021advances}.
-
-Careful \emph{data partitioning strategy} is also consequential.
-When the practitioner controls how the dataset is partitioned
-across simulated clients, choosing a partitioning that preserves
-some class representation at each client, rather than assigning
-entire class slices to individual clients, substantially reduces
-the severity of client drift while still maintaining a realistic
-degree of heterogeneity.
-In Chapter~3, the partitioning strategy applied to the 737-patient
-breast MRI cohort is described and justified in terms of its
-clinical plausibility.
-Finally, \emph{local learning rate scheduling} within each
-client round, specifically the use of cosine annealing, has been
-shown to reduce the magnitude of client drift by progressively
-reducing step sizes as local training approaches a local optimum,
-thereby limiting the distance the local model drifts from the
-global initialisation \cite{arbaoui2025survey}.
+The proximal regularisation of FedProx and the variance-reduction of SCAFFOLD
+(Section~\ref{sec:aggregation}) are the principal algorithmic corrections for
+client drift.
+Server-side momentum and adaptive optimisers (Adam, AdaGrad applied to the
+server update) have also been shown to improve convergence stability under noisy
+heterogeneous client updates \cite{kairouz2021advances}.
+In this thesis, all three clients use identical simulation hardware; system
+heterogeneity is therefore absent by construction, and the sole convergence
+challenge studied is statistical heterogeneity from the non-IID Dirichlet
+partition described in Chapter~3.
 
 
 % ============================================================
@@ -1667,109 +804,39 @@ emerged to support federated learning research and deployment,
 abstracting the communication protocol, client management, and
 aggregation logic from the application-specific model and
 training code.
-This section describes the four most widely adopted frameworks
-in the research community and compares their suitability for
-the cross-silo medical imaging scenario of this thesis.
-
+This section describes Flower, the framework used in this thesis, and lists the
+principal alternatives for context.
 
 % ------------------------------------------------------------
 \subsection{Flower (Flwr)}
 \label{sec:flower}
-% ------------------------------------------------------------
-
-Flower is a flexible, framework-agnostic federated learning
-library that abstracts the federation logic from the local
-training code through a clean client-server interface
-\cite{beutel2022flower}.
-Clients implement a \texttt{NumPyClient} or \texttt{Client}
-interface that defines how local training is performed, how
-model parameters are serialised and deserialised, and how
-evaluation is conducted on local data.
-The server manages the communication protocol, client selection,
-and aggregation strategy.
-Flower supports any deep learning backend, including PyTorch,
-TensorFlow, JAX, and scikit-learn, making it straightforward
-to integrate with existing model codebases.
-
-Flower natively implements FedAvg, FedProx, and several other
-aggregation strategies as configurable server-side strategies,
-and provides a simulation mode that allows large-scale FL
-experiments to be conducted on a single machine without network
-infrastructure.
-Its lightweight design and clear separation of concerns between
-the federation layer and the local training layer make it the
-framework of choice for cross-silo research experiments
-\cite{beutel2022flower}.
-Flower is used throughout the experimental evaluation of this
-thesis to orchestrate the three-hospital breast MRI federation.
-
-
-% ------------------------------------------------------------
-\subsection{FedML}
 \label{sec:fedml}
-% ------------------------------------------------------------
-
-FedML is a comprehensive federated learning research platform
-that supports cross-device, cross-silo, and split learning
-scenarios within a unified codebase \cite{kairouz2021advances}.
-It provides built-in support for a wide range of aggregation
-algorithms, including FedAvg, FedProx, FedNova, and SCAFFOLD,
-as well as simulation and real distributed deployment modes.
-FedML is designed for scalability and includes tools for
-benchmarking across multiple datasets and model architectures.
-Its higher complexity relative to Flower makes it better suited
-to large-scale benchmark studies than to focused research
-implementations.
-
-
-% ------------------------------------------------------------
-\subsection{Substra}
 \label{sec:substra}
-% ------------------------------------------------------------
-
-Substra is a federated learning framework developed with
-healthcare and life sciences applications as its primary
-motivation \cite{rieke2020future}.
-Unlike Flower and FedML, which target research reproducibility,
-Substra is designed for production deployment in regulated
-clinical environments: it provides audit trails, data governance
-controls, and permissioned access management compatible with
-GDPR and HIPAA requirements.
-Its architecture enforces data sovereignty by ensuring that raw
-data never leaves the local node and that all computations on
-local data are logged and auditable.
-Substra has been used in multi-institutional studies involving
-hospitals in France and the United Kingdom, where its compliance
-features were essential for ethical approval \cite{kaissis2020secure}.
-
-
-% ------------------------------------------------------------
-\subsection{PySyft}
 \label{sec:pysyft}
 % ------------------------------------------------------------
 
-PySyft is a privacy-focused machine learning library built on
-top of PyTorch that supports federated learning in combination
-with differential privacy and secure multi-party computation
-\cite{kaissis2020secure}.
-Its tight integration with the PyTorch autograd system allows
-gradient-level operations, including DP noise injection and
-secure aggregation masking, to be inserted transparently into
-the standard PyTorch training loop.
-PySyft is particularly well suited to research scenarios that
-combine FL with formal privacy guarantees, as it provides
-implementations of the DP-SGD algorithm of Abadi~et~al.\
-and of secret-sharing-based secure aggregation in a single
-unified interface \cite{abadi2016deep}.
-
+Flower is an open-source FL library built around the principle of framework
+and language agnosticism: the federation protocol is cleanly separated from
+the local training implementation, so that any PyTorch, TensorFlow, or JAX
+model can be federated with minimal code modification
+\cite{beutel2022flower}.
+On the client side, users implement a standardised interface that
+encapsulates local training and evaluation; on the server side, a
+configurable strategy object governs round management, client sampling,
+and parameter aggregation.
+A built-in virtual client engine schedules client computations sequentially
+on a single workstation, enabling large-scale multi-client experiments
+without network infrastructure.
+Flower is used throughout this thesis to orchestrate the three-hospital
+breast MRI federation.
 
 % ------------------------------------------------------------
 \subsection{Comparative Overview}
 \label{sec:framework-comparison}
 % ------------------------------------------------------------
 
-Table~\ref{tab:framework-comparison} summarises the principal
-characteristics of the four frameworks reviewed above.
+Table~\ref{tab:framework-comparison} summarises the four principal frameworks;
+FedML, Substra, and PySyft are listed for completeness.
 
 \begin{table}[htbp]
   \centering
@@ -1814,7 +881,8 @@ characteristics of the four frameworks reviewed above.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figures/beutel2022_flower_arch.png}
-  \caption{Core architecture of the Flower federated learning
+  \caption[Flower framework architecture]{Core architecture
+    of the Flower federated learning
     framework.
     The server-side \texttt{Strategy} object controls client
     selection, parameter initialisation, aggregation, and
@@ -1826,14 +894,19 @@ characteristics of the four frameworks reviewed above.
   \label{fig:flower-architecture}
 \end{figure}
 
-Flower is selected for this thesis based on three criteria:
-its framework-agnostic design, which allows the PyTorch ResNet
-backbone developed for the breast MRI classification task to be
-wrapped with minimal modification; its native support for the
-FedAvg and FedProx strategies evaluated in Chapter~4; and its
-simulation mode, which enables reproducible experiments on a
-single GPU machine without requiring a multi-machine cluster
-deployment \cite{beutel2022flower}.
+Flower was selected as the federation platform for three reasons arising
+from the specific constraints of this project.
+First, its decoupling of the FL communication protocol from the local
+training code means the PyTorch implementation of ConvNeXt-Nano and
+the Gated Attention MIL pipeline requires no structural changes to
+participate in federation.
+Second, Flower ships with a reference implementation of FedAvg and
+supports custom strategy definitions, allowing SCAFFOLD to be integrated
+at the server level without modifying client-side code.
+Third, the virtual client engine enables all three hospital clients to
+be simulated sequentially on a single GTX~1660~Ti without any network
+infrastructure, ensuring full experimental reproducibility
+\cite{beutel2022flower}.
 
 
 % ============================================================
@@ -1844,15 +917,16 @@ deployment \cite{beutel2022flower}.
 \subsection{Federated Learning for Medical Image Analysis}
 \label{sec:related-medical-imaging}
 
-The application of federated learning to medical image analysis
-has expanded rapidly since Sheller~et~al.\ demonstrated that a
-federated brain tumour segmentation model trained across ten
-institutions, without sharing any patient data, reached performance
-within one percentage point of a centrally trained baseline
+The viability of federated learning for clinical imaging was established
+in an early multi-institutional study by Sheller~et~al., who showed
+that a brain tumour segmentation model jointly trained across ten
+hospitals under a strictly data-local protocol could match the accuracy
+of a model trained on the fully pooled dataset
 \cite{sheller2020federated}.
-This foundational result established the clinical credibility of FL
-as a collaborative learning paradigm and motivated a broad programme
-of follow-on work spanning radiology, pathology, and oncology.
+This result was significant because it demonstrated that the performance
+cost of preserving data locality was negligible in a real clinical
+imaging context, motivating subsequent investigations across a wider
+range of imaging modalities.
 Guan~et~al.\ conducted a systematic survey of FL methods applied to
 medical image analysis from 2017 to 2023, organising the field
 around three system perspectives: client-side methods addressing
@@ -1878,7 +952,7 @@ The most directly related work on federated learning for breast
 cancer imaging is surveyed by Ghosh~et~al., who review federated
 approaches across five cancer imaging modalities including breast MRI,
 mammography, histopathology, and dermoscopy
-\cite{ghosh2026advancements}.
+\cite{ghosh2020clustered}.
 Their survey identifies class imbalance, non-IID subtype distributions
 across institutions, and the high dimensionality of volumetric
 DCE-MRI data as the three principal challenges for federated breast
@@ -1890,20 +964,35 @@ empirical analysis of aggregation strategies under IID and non-IID
 conditions, offering a direct benchmark for the aggregation comparison
 conducted in Chapter~4.
 
-\subsection{Positioning of This Work}
-\label{sec:related-positioning}
 
-To the best of the authors' knowledge, no prior published work has
-applied federated learning to the molecular subtype classification
-of breast DCE-MRI using the publicly available Zenodo dataset
-\cite{dataset_breast_mri_zenodo} with the combination of
-class-imbalance correction through weighted sampling, progressive
-backbone unfreezing, and a systematic comparison of FedAvg and
-FedProx aggregation strategies adopted in this thesis.
-The present work therefore contributes an original experimental
-evaluation of cross-silo federated learning for a clinically
-significant four-class medical imaging task under realistic
-non-IID conditions.
+% ============================================================
+\section{Problem Statement}
+\label{sec:problem-statement}
+% ============================================================
+
+Three concrete challenges motivate the work presented
+in this thesis.
+
+\textbf{Problem 1 --- Data fragmentation under legal constraints.}
+Breast DCE-MRI molecular subtype datasets are held by
+individual institutions and cannot be pooled without
+violating data protection regulations.
+No single institution holds enough patients to train a
+robust multi-class classifier for all four subtypes.
+
+\textbf{Problem 2 --- Severe class imbalance.}
+Molecular subtype prevalence is highly unequal in any
+realistic clinical population.
+Standard federated averaging of locally biased gradients
+amplifies this imbalance, collapsing the global model
+toward majority-class prediction.
+
+\textbf{Problem 3 --- Non-IID client heterogeneity.}
+When each hospital serves a different patient population,
+the local gradient directions diverge across clients.
+Existing drift-correction strategies address heterogeneity
+in data distribution but do not account for the additional
+distortion introduced by within-client class imbalance.
 
 
 % ============================================================
@@ -1932,10 +1021,18 @@ this thesis.
 The Flower framework has been identified as the implementation
 platform, and related work has positioned the present
 contribution within the federated medical imaging literature.
+Among the aggregation strategies surveyed,
+SCAFFOLD \cite{karimireddy2020scaffold} is selected as
+the optimisation variant for the federated experiment on
+the grounds that its control-variate correction mechanism
+directly targets the client drift caused by the non-IID
+three-hospital data partition, which is the primary
+convergence challenge identified in
+Section~\ref{sec:convergence}.
 
 Chapter~3 translates the conceptual and algorithmic framework
 developed here into a concrete experimental design: the
 breast MRI dataset is described, the non-IID partitioning
-strategy is defined, the ResNet classification model is
-specified, and the full federated training pipeline is
-detailed.
+strategy is defined, the ConvNeXt-Nano backbone with Gated
+Attention Multiple Instance Learning head is specified,
+and the full federated training pipeline is detailed.

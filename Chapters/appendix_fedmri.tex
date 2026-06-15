@@ -1,0 +1,743 @@
+% ============================================================
+%  APPENDIX A — FedMRI: Educational Federated Learning Platform
+%  Place: after \printbibliography in main.tex
+%  Figures: copy all PNGs from project root to figures/appendix/
+% ============================================================
+
+\appendix
+\chapter{FedMRI: An Educational Federated Learning Platform
+         for Breast MRI Classification}
+\label{app:fedmri}
+
+\section{Overview and Purpose}
+\label{app:overview}
+
+FedMRI is an educational web application developed to
+demonstrate and validate the federated learning methodology
+described in this thesis.
+The platform serves a dual purpose: it provides an
+interactive showcase of the FedSCRT algorithm
+(Chapter~3, Algorithm~\ref{alg:fedscrt}) operating on
+real breast DCE-MRI data, and it illustrates the practical
+architectural decisions required to deploy federated
+learning in a multi-institutional clinical setting
+while satisfying the data sovereignty constraints of
+Algerian Law~18-07.
+
+The application exposes three distinct user portals
+corresponding to three categories of participant in a
+federated learning network.
+Figure~\ref{fig:fedmri-platform} provides a high-level
+overview of the actors and their relationships to the
+platform.
+The inference engine behind the application is the
+trained FedSCRT model: a ConvNeXt-Nano backbone with
+Gated Attention MIL head, classifying each uploaded
+breast MRI volume as Luminal or Non-Luminal (macro
+F1 = 0.629, AUC = 0.687).
+Inference is real --- the raw voxel data of each uploaded
+\texttt{.mha} or \texttt{.nii} volume is preprocessed
+through the identical 64-slice pipeline described in
+Section~\ref{sec:preprocessing} and passed through the
+PyTorch model.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\linewidth]%
+    {figures/appendix/FedMRI_platform.png}
+  \caption[FedMRI platform actor diagram]{High-level actor diagram of the FedMRI platform.
+    Three user roles interact with the central application:
+    the Doctor (FL participant, uploads scans and
+    contributes to federation training),
+    the Patient (FL consumer, benefits from the global
+    model without participating in training),
+    and the Researcher (FL operator, monitors network
+    topology, model metrics, and training logs).
+    External integrations include the Flower FL server
+    (production), a DICOM viewer for MRI rendering,
+    and an AI chatbot for plain-language explanations.}
+  \label{fig:fedmri-platform}
+\end{figure}
+
+
+% ─────────────────────────────────────────────────────────
+\section{System Architecture}
+\label{app:architecture}
+% ─────────────────────────────────────────────────────────
+
+The FedMRI platform follows a layered microservices
+architecture organised into four tiers
+(Figure~\ref{fig:app-architecture}).
+
+\textbf{Frontend layer.}
+A Next.js~16 web application (App Router, React~19,
+Tailwind CSS, Framer Motion) serves all three portals
+under a single codebase with role-based route protection.
+A companion Expo mobile application provides the patient
+portal on iOS and Android.
+All communication to the backend uses JSON over REST and
+WebSocket (Socket.io) with JWT tokens validated on every
+request.
+
+\textbf{Backend layer.}
+A NestJS API (port 3001) implements business logic,
+role-based access control, and real-time event emission.
+The database layer uses PostgreSQL via Prisma ORM as
+the primary store, Redis for session management and
+WebSocket pub/sub rate limiting, and MinIO or local
+disk for MRI volume storage.
+Hospital silo isolation is enforced at the database
+query level: every case record carries a
+\texttt{scope=HOSPITAL} field that is checked by
+middleware on every read, preventing a doctor at one
+hospital from accessing another hospital's raw cases.
+
+\textbf{ML service layer.}
+A FastAPI service (port 8001) loads the FedSCRT PyTorch
+checkpoint and exposes two endpoints:
+\texttt{POST /predict} (synchronous, returns subtype,
+confidence, and per-slice attention scores) and
+\texttt{POST /round/start} (asynchronous, triggers an
+FL training round).
+The service operates in two modes controlled by an
+environment variable: \texttt{INFERENCE\_MODE=real}
+(GPU required, live model) and
+\texttt{INFERENCE\_MODE=mock} (CPU, deterministic
+seeded responses for offline demonstration).
+
+\textbf{FL coordinator.}
+A second FastAPI service (port 8002) manages the
+federated training round lifecycle.
+In development it runs a mock round that replays
+pre-computed weight deltas; in production it wraps
+\texttt{flwr.server.start\_server()} to orchestrate
+real Flower clients on each hospital VM.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]%
+    {figures/appendix/app_architechter.png}
+  \caption[FedMRI system architecture]{Full system
+    architecture of the FedMRI platform.
+    The frontend layer (Next.js web + Expo mobile) communicates
+    with the NestJS backend via REST and WebSocket.
+    The backend dispatches prediction requests synchronously
+    to the FastAPI ML service and FL round requests
+    asynchronously to the FastAPI FL coordinator.
+    The FL coordinator communicates weight deltas only ---
+    never raw imaging data --- to the Flower FL server
+    in production.
+    Storage uses PostgreSQL (primary), Redis
+    (sessions + pub/sub), and MinIO/local disk (MRI files).}
+  \label{fig:app-architecture}
+\end{figure}
+
+
+% ─────────────────────────────────────────────────────────
+\section{Actors and Use Cases}
+\label{app:actors}
+% ─────────────────────────────────────────────────────────
+
+Figure~\ref{fig:use-cases} presents the complete UML
+use case diagram for the three actor roles.
+The system boundary separates the Doctor portal,
+Patient portal, and Researcher portal.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.72\linewidth]%
+    {figures/appendix/fedmri_use_case_diagram 1.png}
+  \caption[FedMRI use case diagram]{UML use case diagram for the FedMRI platform.
+    The Doctor actor interacts with the system as an FL
+    participant: uploading scans triggers both immediate
+    inference and an asynchronous FL training round.
+    The Patient actor interacts as an FL consumer: scanning
+    and receiving predictions in plain language, with no
+    exposure to FL terminology or model internals.
+    The Researcher actor has read-only access to aggregate
+    model metrics, network topology, and training logs,
+    but never to raw patient data.}
+  \label{fig:use-cases}
+\end{figure}
+
+\subsection{Doctor Portal (FL Participant)}
+\label{app:doctor}
+
+The doctor is the primary FL participant.
+Each clinical interaction follows the same flow:
+(1)~upload a breast MRI scan;
+(2)~receive an immediate binary subtype prediction
+    (Luminal / Non-Luminal), a confidence score,
+    and a per-slice attention heatmap identifying
+    the slices most informative to the model decision;
+(3)~validate or dispute the prediction (active learning
+    feedback loop).
+
+A critical architectural constraint is that the
+doctor's result is returned \emph{before} the FL
+round fires.
+The FL round executes asynchronously in the background,
+as shown in the sequence diagram (Figure~\ref{fig:doctor-sequence}).
+This design ensures that clinical response time is
+bounded by the inference latency (typically 2--5 seconds
+for a single MRI volume on a GPU) and not by the
+federation training time (~30 seconds in mock mode,
+longer in production).
+
+The doctor portal provides seven screens: Dashboard,
+Scan Analysis, Medical History, AI Assistant,
+Model Performance, Documentation, and Settings.
+Hospital silo isolation is enforced throughout:
+a doctor at Hospital~A can view only Hospital~A's
+cases.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.82\linewidth]%
+    {figures/appendix/FedMRI___Sequence_Doctor_Upload__FL_Round_AutoTrigger.png}
+  \caption[Doctor upload and FL round sequence]{Sequence
+    diagram for the Doctor scan upload
+    and FL round auto-trigger flow.
+    The doctor submits a scan (JWT authenticated).
+    The NestJS backend forwards the image path to the
+    ML service synchronously and returns the prediction
+    result and attention map to the doctor (solid arrows).
+    An FL round is then triggered asynchronously: the FL
+    coordinator sequentially notifies each of the three
+    hospital clients (Hospital~A, B, C), collects weight
+    deltas, and emits a WebSocket \texttt{fl:round:complete}
+    event when the round finishes.
+    At no point are raw MRI images transmitted across
+    the hospital boundary (\texttt{rawDataTransmitted=0}
+    is recorded in the privacy audit log).}
+  \label{fig:doctor-sequence}
+\end{figure}
+
+\subsection{Patient Portal (FL Consumer)}
+\label{app:patient}
+
+The patient is an independent consumer of the global
+federated model with no hospital affiliation and no
+participation in the training loop.
+Patient-facing language deliberately avoids FL
+terminology: the platform communicates
+``AI trained across 3 hospitals'' rather than
+``federated learning'' or ``gradient aggregation''.
+
+The patient uploads their own MRI file and receives
+the binary classification result in plain clinical
+language, accompanied by an advisory statement:
+Luminal subtypes are associated with hormone-receptor
+positivity and may indicate eligibility for endocrine
+therapy; all results require clinical correlation and
+specialist review.
+The AI assistant (backed by Claude via the Anthropic
+API, streamed via Server-Sent Events) provides
+plain-language explanations of the result on request.
+The patient may download a PDF summary of their
+analysis session.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.72\linewidth]%
+    {figures/appendix/FedMRI___Sequence_Patient_MRI_Upload.png}
+  \caption[Patient MRI upload sequence]{Sequence diagram for the patient MRI upload flow.
+    The patient's scan is processed by the same FastAPI ML
+    service as the doctor's scan, but the resulting case
+    record carries \texttt{scope=PATIENT}, isolating it
+    from the hospital silo entirely.
+    No FL round is triggered by a patient upload: patients
+    are consumers of the trained model, not contributors
+    to its training.}
+  \label{fig:patient-sequence}
+\end{figure}
+
+\subsection{Researcher Portal (FL Operator)}
+\label{app:researcher}
+
+The researcher has a global read-only view of the
+federation: model performance metrics across rounds,
+network topology showing the three hospital nodes and
+their training status, aggregated dataset statistics,
+and training logs.
+The researcher never accesses raw patient images or
+individual case records.
+This access control is enforced at the middleware level:
+all researcher queries return aggregate or model-level
+data, never row-level patient data.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.72\linewidth]%
+    {figures/appendix/FedMRI___Sequence_Researcher_Dataset_Access.png}
+  \caption[Researcher dataset access sequence]{Sequence diagram for the researcher dataset
+    access flow.
+    The researcher requests dataset statistics and model
+    metrics via the NestJS API.
+    The response contains aggregated counts, F1 trajectories,
+    and weight delta norms --- never raw case images or
+    patient identifiers.
+    The privacy guarantee holds by construction: the
+    researcher role has no database permissions on the
+    \texttt{Case} table beyond count queries.}
+  \label{fig:researcher-sequence}
+\end{figure}
+
+
+% ─────────────────────────────────────────────────────────
+\section{Database Schema}
+\label{app:database}
+% ─────────────────────────────────────────────────────────
+
+Figure~\ref{fig:db-schema} presents the Prisma entity
+relationship diagram for the FedMRI database.
+Nine entities model the complete application domain.
+
+\textbf{Hospital} and \textbf{User} model the
+institutional and clinical actors.
+Each user belongs to exactly one hospital, and each
+hospital has a unique Flower client identifier for
+the federated training protocol.
+
+\textbf{Case} is the central entity.
+Its \texttt{scope} field enforces the silo boundary:
+a \texttt{scope=HOSPITAL} case is visible only to the
+submitting hospital; a \texttt{scope=PATIENT} case is
+visible only to the submitting patient.
+The \texttt{storedLocally=true} invariant ensures that
+image files never leave the institution that uploaded them.
+
+\textbf{FLRound} and \textbf{FLContribution} record the
+federated training history.
+\texttt{FLContribution.rawDataTransmitted} is a
+database-level invariant that is always zero, enforcing
+the FL privacy claim in a verifiable, auditable way.
+
+\textbf{PrivacyAuditLog} records every FL round event
+with the hospital identifier, event type, bytes
+transmitted, and a \texttt{rawDataTransmitted} field
+that is always zero --- providing the audit trail
+required by Law~18-07 article~22 for health data processing.
+
+\textbf{Feedback} captures active learning signals:
+when a doctor disputes a prediction, the corrected
+subtype label is stored and the \texttt{alTriggered}
+flag indicates whether an additional FL round was
+automatically initiated.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]%
+    {figures/appendix/FedMRI___database_schema.png}
+  \caption[FedMRI database entity-relationship diagram]{%
+    Entity-relationship diagram for the FedMRI
+    PostgreSQL schema (Prisma ORM).
+    Nine entities cover hospital and user management,
+    case storage with silo isolation, FL round
+    lifecycle tracking, active learning feedback,
+    AI chat messages, model metrics, and privacy
+    audit logging.
+    The \texttt{rawDataTransmitted=0} field in both
+    \texttt{FLContribution} and \texttt{PrivacyAuditLog}
+    is a database-level invariant that enforces the
+    federated privacy guarantee.}
+  \label{fig:db-schema}
+\end{figure}
+
+
+% ─────────────────────────────────────────────────────────
+\section{Deployment Architecture}
+\label{app:deployment}
+% ─────────────────────────────────────────────────────────
+
+The platform supports two deployment configurations
+controlled entirely by environment variables, requiring
+zero application code changes to switch between them.
+
+\subsection{Development: Single Machine, Docker Compose}
+
+The development configuration
+(Figure~\ref{fig:dev-deployment}) runs all services
+on a single machine using Docker Compose.
+The ML service operates with
+\texttt{INFERENCE\_MODE=mock} (no GPU required) and
+the FL coordinator with \texttt{FL\_MODE=mock}
+(replays pre-computed weight deltas rather than
+running live Flower clients).
+This configuration allows the full application
+including UI, authentication, FL round animation,
+and prediction results to be demonstrated on
+any laptop without GPU hardware.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.70\linewidth]%
+    {figures/appendix/Mock_Dev__Single_Machine__Docker_Compose.png}
+  \caption[Single-machine development deployment]{Development deployment on a single machine
+    via Docker Compose.
+    Five containers: Next.js web frontend (:3000),
+    NestJS API (:3001), FastAPI ML service (:8001,
+    mock mode), FastAPI FL coordinator (:8002, mock
+    mode), PostgreSQL (:5432), Redis (:6379), and
+    local disk storage.
+    No GPU is required; all FL rounds replay seeded
+    deterministic responses.}
+  \label{fig:dev-deployment}
+\end{figure}
+
+\subsection{Production: Multiple VMs, Real Flower}
+
+The production configuration
+(Figure~\ref{fig:prod-deployment}) distributes services
+across three virtual machines.
+VM~1 hosts the web application and NestJS API behind
+an Nginx reverse proxy.
+VM~2 hosts the FastAPI ML service with
+\texttt{INFERENCE\_MODE=real}, requiring a GPU for
+live inference.
+VM~3 hosts the Flower FL coordinator with
+\texttt{FL\_MODE=flower}, running
+\texttt{flwr.server.start\_server()} and managing
+three Flower clients deployed on separate hospital VMs
+(VM~4, VM~5, VM~6).
+
+Critically, each hospital VM (4--6) holds only its
+local patient data.
+The Flower protocol transmits model weight deltas only
+across the hospital firewall boundary.
+Raw MRI volumes, patient identifiers, and label
+information never traverse the hospital network
+boundary, satisfying the data sovereignty requirements
+of Law~18-07 and the federated privacy model of
+Chapter~2.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\linewidth]%
+    {figures/appendix/Production__Multiple_VMs.png}
+  \caption[Production multi-VM deployment]{Production deployment across six virtual machines.
+    VM~1 (app server): Nginx + Next.js + NestJS API.
+    VM~2 (ML server, GPU required): FastAPI inference
+    with real FedSCRT checkpoint.
+    VM~3 (FL coordinator): Flower server
+    (\texttt{flwr.server.start\_server()}).
+    VMs~4--6 (hospital clients): one per simulated
+    hospital, each holding local data only.
+    The Flower protocol carries weight deltas only across
+    the hospital firewalls; the label \emph{``weight deltas
+    only cross boundary''} on each hospital connection
+    reflects the FL privacy invariant.}
+  \label{fig:prod-deployment}
+\end{figure}
+
+
+% ─────────────────────────────────────────────────────────
+\section{Privacy Guarantees by Design}
+\label{app:privacy}
+% ─────────────────────────────────────────────────────────
+
+The FedMRI platform implements the federated privacy
+model at four independent layers, such that the
+privacy guarantee holds by construction and cannot
+be violated by application logic errors.
+
+\textbf{Layer 1 — Data localisation.}
+MRI files are stored on the local disk of the hospital
+server that uploaded them.
+The \texttt{Case.storedLocally=true} database invariant
+is enforced by the NestJS service layer on every case
+creation.
+The ML service receives only a file path, never raw
+pixel data, over the internal network.
+
+\textbf{Layer 2 — Silo query isolation.}
+Every database query on the \texttt{Case} table
+includes a \texttt{WHERE hospitalId = :current\_hospital}
+filter injected by NestJS middleware.
+No application code can read another hospital's cases
+without deliberately bypassing this middleware.
+
+\textbf{Layer 3 — FL protocol constraint.}
+The Flower protocol transmits only serialised PyTorch
+model state dictionaries between the coordinator and
+the hospital clients.
+No patient data, no image tensors, and no label
+information are present in the Flower message payloads.
+
+\textbf{Layer 4 — Audit log invariant.}
+Every FL round completion writes a
+\texttt{PrivacyAuditLog} row with
+\texttt{rawDataTransmitted=0}.
+This field is set by the FL coordinator service and
+is never modified by application logic.
+The audit log provides the verifiable evidence trail
+required by Law~18-07 article~22 for health data
+processing by automated systems.
+
+Table~\ref{tab:privacy-layers} summarises the four
+layers and their enforcement mechanisms.
+
+\begin{table}[htbp]
+  \centering
+  \caption[FedMRI privacy guarantee layers]{Privacy guarantee layers in the FedMRI
+    platform. Each layer independently enforces the
+    data sovereignty constraint; all four must be
+    bypassed simultaneously to violate the guarantee.}
+  \label{tab:privacy-layers}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{llll}
+    \toprule
+    \textbf{Layer} & \textbf{Mechanism}
+      & \textbf{Enforcement} & \textbf{Failure mode} \\
+    \midrule
+    Data localisation
+      & \texttt{storedLocally=true}
+      & Service layer invariant
+      & File system error \\
+    Silo isolation
+      & Hospital ID middleware filter
+      & NestJS guard
+      & Auth bypass \\
+    FL protocol
+      & Weight deltas only
+      & Flower serialisation
+      & Protocol modification \\
+    Audit log
+      & \texttt{rawDataTransmitted=0}
+      & DB write on round close
+      & DB corruption \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+% ─────────────────────────────────────────────────────────
+\section{Technology Stack Summary}
+\label{app:stack}
+% ─────────────────────────────────────────────────────────
+
+Table~\ref{tab:tech-stack} summarises the complete
+technology stack of the FedMRI platform.
+
+\begin{table}[htbp]
+  \centering
+  \caption{FedMRI platform technology stack.}
+  \label{tab:tech-stack}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Component} & \textbf{Technology}
+      & \textbf{Role} \\
+    \midrule
+    Web frontend    & Next.js 16, React 19, Tailwind CSS
+      & Doctor + Researcher portals \\
+    Mobile frontend & Expo React Native
+      & Patient portal (iOS/Android) \\
+    API backend     & NestJS, Prisma ORM
+      & Business logic, auth, events \\
+    Primary DB      & PostgreSQL
+      & Persistent data store \\
+    Cache/pub-sub   & Redis
+      & Sessions, WebSocket events \\
+    File storage    & MinIO / local disk
+      & MRI volume storage \\
+    ML service      & FastAPI, PyTorch
+      & Inference + attention maps \\
+    FL coordinator  & FastAPI, Flower (flwr)
+      & Training round management \\
+    AI assistant    & Anthropic Claude API
+      & Plain-language explanations \\
+    Real-time       & Socket.io, SSE
+      & FL round progress events \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+% ─────────────────────────────────────────────────────────
+\section{Application Screenshots}
+\label{app:screenshots}
+% ─────────────────────────────────────────────────────────
+
+The following screenshots illustrate the FedMRI web application
+as rendered in a desktop browser.
+All screens were captured from the development deployment
+running with \texttt{INFERENCE\_MODE=mock} and
+\texttt{FL\_MODE=mock}.
+
+% ── Authentication ────────────────────────────────────────
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[t]{0.48\linewidth}
+    \includegraphics[width=\linewidth]%
+      {figures/appendix/app-scrennshots/FedMRI_Login.png}
+    \caption{Login screen.}
+    \label{fig:ss-login}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    \includegraphics[width=\linewidth]%
+      {figures/appendix/app-scrennshots/FedMRI_Signup.png}
+    \caption{Sign-up screen.}
+    \label{fig:ss-signup}
+  \end{subfigure}
+  \caption[Authentication screens]{Authentication screens. Users register with a role
+    (Doctor, Patient, or Researcher) and a hospital affiliation.
+    JWT tokens are issued on successful login and validated by
+    NestJS middleware on every subsequent request.}
+  \label{fig:ss-auth}
+\end{figure}
+
+% ── Doctor portal ─────────────────────────────────────────
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\linewidth]%
+    {figures/appendix/app-scrennshots/Doctor_Portal_Dashboard.png}
+  \caption[Doctor portal --- Dashboard]{Doctor portal --- Dashboard.
+    Displays the hospital's aggregated case statistics,
+    recent scan activity, and the current federated model
+    version.
+    The sidebar exposes the seven doctor screens:
+    Dashboard, Scan Analysis, Medical History,
+    AI Assistant, Model Performance,
+    Documentation, and Settings.}
+  \label{fig:ss-doctor-dashboard}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\linewidth]%
+    {figures/appendix/app-scrennshots/New_MRI_Scan_Upload_Analysis_Flow.png}
+  \caption[Doctor portal --- Scan Upload and Analysis]{Doctor portal --- Scan Upload and Analysis.
+    The doctor uploads a \texttt{.mha} or \texttt{.nii}
+    MRI volume; the FastAPI ML service returns a binary
+    subtype prediction (Luminal / Non-Luminal),
+    a confidence score, and a per-slice attention heatmap
+    within 2--5 seconds.
+    An FL training round is triggered asynchronously
+    in the background.}
+  \label{fig:ss-scan-upload}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\linewidth]%
+    {figures/appendix/app-scrennshots/Medical_History_Archive.png}
+  \caption[Doctor portal --- Medical History Archive]{Doctor portal --- Medical History Archive.
+    Lists all cases submitted by the current hospital,
+    with subtype prediction, confidence, submission date,
+    and validation status.
+    Hospital silo isolation ensures that only cases with
+    \texttt{hospitalId} matching the authenticated user
+    are returned.}
+  \label{fig:ss-medical-history}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\linewidth]%
+    {figures/appendix/app-scrennshots/Doctor_Portal_Documentation.png}
+  \caption[Doctor portal --- Documentation]{Doctor portal --- Documentation.
+    Provides inline reference documentation for the
+    FedSCRT model architecture, the federated training
+    protocol, and the interpretation of attention heatmaps.
+    Content is rendered from Markdown and does not
+    require an external network request.}
+  \label{fig:ss-doctor-docs}
+\end{figure}
+
+% ── Patient portal ────────────────────────────────────────
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\linewidth]%
+    {figures/appendix/app-scrennshots/Ask_AI_Patient_Chat.png}
+  \caption[Patient portal --- AI Assistant chat]{Patient portal --- AI Assistant chat.
+    The patient submits a natural-language question about
+    their scan result.
+    Responses are streamed from the Anthropic Claude API
+    via Server-Sent Events and rendered incrementally in
+    the chat window.
+    FL terminology is deliberately absent from
+    patient-facing language.}
+  \label{fig:ss-patient-chat}
+\end{figure}
+
+% ── Researcher portal ─────────────────────────────────────
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[t]{0.48\linewidth}
+    \includegraphics[width=\linewidth]%
+      {figures/appendix/app-scrennshots/Researcher_Portal_Dataset_Management.png}
+    \caption{Dataset Management.}
+    \label{fig:ss-dataset-mgmt}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    \includegraphics[width=\linewidth]%
+      {figures/appendix/app-scrennshots/dataset_ready.png}
+    \caption{Dataset ready confirmation.}
+    \label{fig:ss-dataset-ready}
+  \end{subfigure}
+  \caption[Researcher portal --- Dataset Management]{Researcher portal --- Dataset Management.
+    Left: the researcher inspects per-hospital case counts,
+    class distributions, and partition statistics.
+    Right: confirmation banner indicating that the dataset
+    partition is balanced across the three hospital silos
+    and that the FL coordinator is ready to initiate a
+    new training round.}
+  \label{fig:ss-researcher-dataset}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[t]{0.48\linewidth}
+    \includegraphics[width=\linewidth]%
+      {figures/appendix/app-scrennshots/Researcher_Portal_Model_Performance.png}
+    \caption{Model Performance.}
+    \label{fig:ss-model-perf}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    \includegraphics[width=\linewidth]%
+      {figures/appendix/app-scrennshots/FL_insights.png}
+    \caption{FL Insights.}
+    \label{fig:ss-fl-insights}
+  \end{subfigure}
+  \caption[Researcher portal --- Model Performance \& FL Insights]{Researcher portal --- Model Performance and FL Insights.
+    Left: macro F1, AUC, and per-class precision/recall
+    curves across federated rounds.
+    Right: FL Insights panel showing per-hospital weight
+    delta norms, round duration, and participation status
+    for the most recent training round.}
+  \label{fig:ss-researcher-perf}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\linewidth]%
+    {figures/appendix/app-scrennshots/Researcher_Portal_System_Logs.png}
+  \caption[Researcher portal --- System Logs]{Researcher portal --- System Logs.
+    Chronological event log for all FL round lifecycle
+    events: round start, client notifications, weight
+    delta reception, aggregation, and round completion.
+    Each row records the hospital identifier, event type,
+    bytes transmitted, and the \texttt{rawDataTransmitted}
+    field (always zero).}
+  \label{fig:ss-system-logs}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\linewidth]%
+    {figures/appendix/app-scrennshots/Html_Body.png}
+  \caption[Application shell --- HTML body structure]{Application shell --- HTML body structure.
+    Browser developer tools view of the rendered DOM root,
+    illustrating the Next.js App Router hydration structure
+    and the Tailwind CSS utility class pattern applied
+    throughout the platform.}
+  \label{fig:ss-html-body}
+\end{figure}
