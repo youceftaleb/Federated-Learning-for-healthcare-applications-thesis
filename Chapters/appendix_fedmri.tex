@@ -35,7 +35,7 @@ trained FedSCRT model: a ConvNeXt-Nano backbone with
 Gated Attention MIL head, classifying each uploaded
 breast MRI volume as Luminal or Non-Luminal (macro
 F1 = 0.629, AUC = 0.687).
-Inference is real --- the raw voxel data of each uploaded
+Inference is real: the raw voxel data of each uploaded
 \texttt{.mha} or \texttt{.nii} volume is preprocessed
 through the identical 64-slice pipeline described in
 Section~\ref{sec:preprocessing} and passed through the
@@ -316,7 +316,7 @@ the FL privacy claim in a verifiable, auditable way.
 \textbf{PrivacyAuditLog} records every FL round event
 with the hospital identifier, event type, bytes
 transmitted, and a \texttt{rawDataTransmitted} field
-that is always zero --- providing the audit trail
+that is always zero, providing the audit trail
 required by Law~18-07 article~22 for health data processing.
 
 \textbf{Feedback} captures active learning signals:
