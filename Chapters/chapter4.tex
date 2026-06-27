@@ -14,7 +14,7 @@
 %  ROC curves, SCAFFOLD results
 % ============================================================
 
-\chapter{Implementation and Results}
+\chapter{Experimental Results and Discussion}
 \label{chap:results}
 
 % ============================================================
@@ -201,6 +201,38 @@ seed used in the primary experiment.
     \bottomrule
   \end{tabular}
 \end{table}
+
+\paragraph{Partition validity.}
+The reported degradation under non-IID conditions uses a
+Dirichlet($\alpha=0.5$) partition with a fixed random
+seed (seed = 42), which is the standard methodology for
+controlled non-IID simulation in federated learning
+research \cite{kairouz2021advances}.
+This partition is not equivalent to a uniformly random
+assignment of patients to hospitals: a uniformly random
+split would, by construction, produce near-identical
+class proportions across all three hospitals and would
+therefore not test the non-IID failure mode this thesis
+investigates.
+
+To verify that the observed degradation is attributable
+to distributional heterogeneity rather than to an
+artefact of one specific partition draw, the evaluation
+protocol should ideally be repeated for the
+\emph{testing/inference} phase across multiple
+independent Dirichlet partition seeds and contrasted
+against a uniformly random (near-IID) split of the same
+patients, holding the training procedure identical.
+This repetition was not performed across multiple seeds
+in the present work due to the computational cost of
+each federated run (in excess of 20 hours per
+configuration on the available hardware); the results
+reported here correspond to a single representative
+partition (seed = 42).
+Confirming the robustness of the FedSCRT gap-closure
+result across multiple independent non-IID partitions,
+including comparison against random splits at evaluation
+time, is identified as a direction for future work.
 
 \subsection{Communication Round Configuration}
 \label{sec:round-config}
@@ -432,7 +464,7 @@ and Hospital~1's Non-Luminal signal (57 of 80 patients)
 is simply too small to counteract them.
 This is the classic FedAvg failure under statistical
 heterogeneity, and it appears here even though the
-training set as a whole is 3.2:1 Luminal --- not
+training set as a whole is 3.2:1 Luminal, not
 extreme by standard measures.
 The performance gap relative to the centralised
 baseline is 0.239~F1 points.
@@ -487,7 +519,7 @@ Non-Luminal for every patient (F1~= 0.200, and it
 stays there for all 20 rounds).
 
 Two things stand out.
-First, the AUC at round~2 reaches 0.601 --- higher
+First, the AUC at round~2 reaches 0.601, higher
 than FedAvg manages after 19~rounds.
 This means SCAFFOLD has learned genuinely useful
 representations of both classes; the problem is not
@@ -496,7 +528,7 @@ of it.
 Second, SCAFFOLD under near-IID ($\alpha=100$) gives
 AUC~= 0.370, below random chance.
 This confirms that the instability is caused by class
-imbalance, not by non-IID data distribution ---
+imbalance, not by non-IID data distribution,
 a finding that directly motivates the FedSCRT design.
 
 \subsection{FedSCRT: Federated Classifier Retraining}
@@ -514,7 +546,7 @@ FedAvg, reducing the distance to the centralised
 baseline from 0.239 to 0.038~F1 points.
 
 The AUC of 0.687 is slightly \emph{higher} than the
-centralised baseline of 0.674 --- the federated model
+centralised baseline of 0.674: the federated model
 actually discriminates better than the single-fold
 centralised model, because three heterogeneous hospital
 distributions provide more training diversity than
@@ -735,7 +767,7 @@ the primary non-IID partition ($\alpha=0.5$).
 
 Figure~\ref{fig:convergence-curves} shows what
 happens round by round.
-FedAvg's F1 is flat from round~1 --- it gets stuck
+FedAvg's F1 is flat from round~1; it gets stuck
 immediately.
 SCAFFOLD reaches its best AUC (0.601) by round~2,
 confirming the theoretical drift correction works
@@ -745,7 +777,7 @@ Momentum-FedAvg is the most volatile: it peaks at
 AUC~= 0.645 at round~6 then falls to 0.422 by
 round~20.
 FedSCRT, as a one-shot post-training stage, is not
-on this plot --- it operates after round~20 and
+on this plot; it operates after round~20 and
 produces the final AUC of 0.687.
 
 \begin{figure}[htbp]
@@ -796,10 +828,10 @@ produces the final AUC of 0.687.
     SCAFFOLD
       & Round~2  & 0.601 (rd.~2)  & $\approx$0.500 \\
     FedSCRT (one-shot)
-      & ---      & 0.687          & 0.687 \\
+      & n/a      & 0.687          & 0.687 \\
     \midrule
     Centralised reference
-      & ---      & 0.674          & 0.674 \\
+      & n/a      & 0.674          & 0.674 \\
     \bottomrule
   \end{tabular}}
 \end{table}
@@ -928,23 +960,33 @@ centralised training achieves.
 \label{sec:sota-comparison}
 % ============================================================
 
-Table~\ref{tab:sota} positions the centralised result within
-the published literature on breast MRI molecular subtype
-classification.
-Direct numerical comparison is complicated by differences
-in dataset, class definition, evaluation protocol, and
-whether segmentation masks were used for region-of-interest
-extraction.
-All works listed below use variants of the Duke Hospital
-dataset introduced by Saha~et~al.\ \cite{saha2018} or
-comparable DCE-MRI cohorts.
+To the best of our knowledge, no other published
+work reports molecular subtype classification results
+on this specific publicly available cohort
+(Zenodo DOI~10.5281/zenodo.7956360).
+The results below are therefore reported in isolation
+as the reference point for this dataset, established
+by this work.
+Table~\ref{tab:sota} collects the results obtained on
+this exact dataset, while published methods evaluated
+on other breast MRI cohorts are listed separately in
+Table~\ref{tab:sota-other-datasets} for context only.
+Direct numerical comparison across datasets is
+complicated by differences in cohort size, class
+definition, class imbalance ratio, evaluation protocol,
+and whether segmentation masks were used for
+region-of-interest extraction.
 
 \begin{table}[htbp]
   \centering
-  \caption{Comparison with published results on breast
-    MRI molecular subtype classification. The proposed
-    method operates without tumour segmentation masks,
-    a constraint not shared by most prior works.}
+  \caption{Comparison with published results using the
+    \emph{same} dataset (Zenodo DOI 10.5281/zenodo.7956360,
+    Alves and Boulogne 2023, Duke Hospital cohort).
+    Methods using other breast MRI cohorts are listed
+    separately in Table~\ref{tab:sota-other-datasets} for
+    context only, as their numbers are not directly
+    comparable due to differing cohort size, class
+    imbalance, and acquisition protocol.}
   \label{tab:sota}
   \renewcommand{\arraystretch}{1.3}
   \resizebox{\textwidth}{!}{%
@@ -955,10 +997,6 @@ comparable DCE-MRI cohorts.
       & \textbf{Metric}
       & \textbf{Value} \\
     \midrule
-    Saha et al.\ \cite{saha2018} & 4-class & Yes (ROI)
-      & AUC & 0.65--0.70 \\
-    saha et al.\ \cite{saha2018}
-      & Various & Varies & F1 macro & $\sim$0.40--0.55 \\
     \textbf{Proposed (4-class centralised)}
       & 4-class & \textbf{No} & F1 macro & 0.342 \\
     \textbf{Proposed (binary centralised)}
@@ -972,6 +1010,44 @@ comparable DCE-MRI cohorts.
     \bottomrule
   \end{tabular}}
 \end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Published breast MRI subtype classification
+    results on \emph{other} datasets, shown for general
+    context only. These figures are \textbf{not}
+    directly comparable to the results in
+    Table~\ref{tab:sota} due to differences in cohort
+    size, class imbalance ratio, mask availability,
+    and imaging protocol.}
+  \label{tab:sota-other-datasets}
+  \renewcommand{\arraystretch}{1.3}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{llcccc}
+    \toprule
+    \textbf{Method} & \textbf{Dataset}
+      & \textbf{Task}
+      & \textbf{Segmentation?}
+      & \textbf{Metric}
+      & \textbf{Value} \\
+    \midrule
+    Saha et al.\ \cite{saha2018}
+      & Duke, 922 subjects & 4-class & Yes (ROI)
+      & AUC & 0.65--0.70 \\
+    Saha et al.\ \cite{saha2018}
+      & Duke, 922 subjects & Various & Varies
+      & F1 macro & $\sim$0.40--0.55 \\
+    \bottomrule
+  \end{tabular}}
+\end{table}
+
+No directly comparable published baseline exists on
+the same dataset; the results in Table~\ref{tab:sota}
+establish this reference point.
+Table~\ref{tab:sota-other-datasets} contextualises our
+results against work on other breast MRI cohorts, but
+these numbers should not be read as a head-to-head
+comparison given the differing experimental conditions.
 
 The proposed FedSCRT system achieves a binary macro F1
 of 0.629 and an AUC-ROC of 0.687 without tumour

@@ -287,7 +287,7 @@ tends to produce models biased toward the majority class.
 The system described in this thesis was not designed
 in a single step.
 Each component was added to address a specific,
-documented failure of the preceding configuration ---
+documented failure of the preceding configuration:
 a chain of incremental engineering decisions, each
 motivated by a concrete experimental observation.
 
@@ -1790,8 +1790,8 @@ The effect is direct.
 In a naturally sampled batch at Hospital~2, Luminal
 patients contribute 84\,\% of the gradient and Non-Luminal
 patients contribute only 16\,\%.
-In a balanced batch, both classes contribute 50\,\% each
---- not because data was shared or moved, but because the
+In a balanced batch, both classes contribute 50\,\% each,
+not because data was shared or moved, but because the
 sampler physically forces equal representation in every
 batch.
 The local class frequency of Hospital~2 stops influencing
@@ -1809,7 +1809,7 @@ To make this concrete: consider a Non-Luminal tumour
 scanned at a hospital in Algiers and another Non-Luminal
 tumour scanned at a hospital in Oran.
 These are different patients on different machines.
-Their raw pixel images look different --- different
+Their raw pixel images look different: different
 brightness, different noise, different contrast.
 But after passing through the same frozen backbone
 $\Psi_\theta$, both produce a 256-number vector that

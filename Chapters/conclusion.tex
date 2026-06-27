@@ -63,7 +63,7 @@ the smaller minority-class hospital's gradient signal.
 
 SCAFFOLD demonstrated an important decoupling.
 Its control-variate correction successfully prevented
-client drift at the representation learning level ---
+client drift at the representation learning level,
 reaching AUC = 0.601 by round~2, whereas FedAvg required
 19 rounds to reach a comparable AUC, but overcorrected
 the decision boundary to Non-Luminal prediction (F1 = 0.200)
@@ -93,7 +93,7 @@ FedSCRT closes 84.1\% of the gap that FedAvg leaves.
 
 \section*{Limitations}
 
-Four limitations of this work are acknowledged.
+Five limitations of this work are acknowledged.
 
 \textbf{No tumour segmentation masks.}
 The dataset provides no region-of-interest annotations.
@@ -125,6 +125,33 @@ The joint problem of non-IID data and severe within-client
 class imbalance lacks a tailored algorithm with theoretical
 guarantees, representing an open research gap identified
 by this work.
+
+\textbf{Absent rare subtypes at some clients.}
+A related and more severe limitation than the partition
+imbalance addressed by FedSCRT is the case where a rare
+subtype is entirely \emph{absent} from a given hospital's
+local data, for example, if Hospital~2 received zero
+HER2-enriched patients under a more extreme partition
+draw.
+The class-balanced sampling argument of
+Section~\ref{sec:fedscrt-theory} implicitly requires that
+each client hold at least one sample per class, since the
+balanced sampler must draw an equal number of patients
+from every class in each batch; if a hospital has zero
+samples of a given subtype, its local classifier head
+cannot be calibrated for that class at all, and the
+federated aggregation step would need to either exclude
+that hospital's contribution for the missing class or
+rely entirely on the other hospitals' signal for it.
+In the present experiments (Dirichlet $\alpha=0.5$ and
+$\alpha=100$, seed~42), every hospital retained at least
+one patient from each represented class, so this
+boundary case did not arise; however, it remains a
+realistic scenario for genuinely rare subtypes such as
+HER2-enriched (46 of 737 patients overall) under a more
+extreme institutional split, and is identified as an
+open problem for the federated calibration of very rare
+classes.
 
 \section*{Perspectives and Future Work}
 \label{sec:future-work}
@@ -176,8 +203,8 @@ for future clinical deployment.
 \textbf{Multi-sequence and multi-modality extension.}
 The current pipeline uses T1-subtraction DCE-MRI at a
 single time point.
-Including T2-weighted and diffusion-weighted sequences
---- which encode complementary tissue properties ---
+Including T2-weighted and diffusion-weighted sequences,
+which encode complementary tissue properties,
 would require a multi-branch MIL architecture but is
 expected to substantially improve subtype discrimination,
 particularly for the Triple-Negative class whose

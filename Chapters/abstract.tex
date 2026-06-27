@@ -4,62 +4,51 @@
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-Breast cancer molecular subtype classification from
-Dynamic Contrast-Enhanced MRI (DCE-MRI) is a clinically
-important task: the subtype determines whether a patient
-is eligible for hormone therapy or requires chemotherapy.
-Training an automated classifier is, however, difficult
-in practice.
-A single hospital typically holds fewer than 800 patients,
-the class imbalance between subtypes reaches 10:1, and
-data protection regulations --- including Algerian Law
-18-07 --- prevent institutions from pooling their imaging
-archives.
+Breast cancer comes in different biological subtypes,
+and knowing which subtype a patient has determines the
+right treatment: some subtypes respond well to hormone
+therapy, while others need chemotherapy.
+Doctors can estimate the subtype from an MRI scan,
+and artificial intelligence can help automate this task.
 
-This work investigates whether federated learning can
-produce a useful classifier under these constraints,
-without any patient data leaving its source institution.
-The study is conducted on a public 737-patient breast
-DCE-MRI cohort (Duke Hospital, Zenodo DOI
-10.5281/zenodo.7956360) with four molecular subtypes:
-Luminal~A, Luminal~B, HER2-enriched, and Triple-Negative.
+The difficulty is that no single hospital has enough
+patient scans to train a reliable AI model on its own,
+and privacy laws prevent hospitals from simply sharing
+their patient data with each other.
 
-A three-stage local training pipeline was built from
-validated components: a ConvNeXt-Nano backbone with
-Gated Attention Multiple Instance Learning processes
-whole volumes without requiring tumour segmentation masks;
-Label-Distribution-Aware Margin loss, Adaptive
-Sharpness-Aware Minimisation, Stochastic Weight Averaging,
-and Classifier Retraining address class imbalance at
-each stage of training.
-This pipeline achieves a four-class ensemble macro~F1
-of~0.342 and a binary macro~F1 of~0.667 on the
-held-out validation fold.
+This work explores a technique called federated learning,
+which allows several hospitals to train one shared AI
+model together without any hospital ever sending its
+patient images to the others.
+Only the model itself, not the data, moves between
+hospitals.
 
-For the federated experiment, three simulated hospital
-clients are constructed from a Dirichlet partition
-($\alpha = 0.5$), producing deliberately heterogeneous
-local class distributions.
-Standard FedAvg collapses to majority-class prediction
-(macro~F1~= 0.429).
-SCAFFOLD improves early representation learning but fails
-at head calibration under the extreme class asymmetry.
-The proposed FedSCRT algorithm --- which combines a
-SCAFFOLD backbone with federated class-balanced classifier
-retraining --- achieves macro~F1~= 0.629 and
-AUC-ROC~= 0.687, closing 84.1\% of the federated
-performance gap and exceeding the centralised AUC baseline.
-A theoretical result establishes that class-balanced
-sampling renders each client's head gradient independent
-of its local class prior, and a controlled cosine-similarity
-experiment on three artificial hospitals confirms this:
-balanced gradients align with the global objective
-($\cos \geq 0.99$) regardless of local prior, while naturally
-sampled gradients drift toward the majority class, explaining
-why the federated classifier-retraining stage is robust to the
-hospitals' heterogeneous class distributions.
+We found that simply applying federated learning does
+not work well in this setting, because hospitals tend
+to see very different numbers of patients from each
+subtype, and some subtypes are naturally much rarer
+than others.
+Standard federated methods get confused by this
+combination and end up making poor predictions.
+
+To address this, we developed a new training procedure,
+which we call FedSCRT, that separates two parts of the
+learning process: first the hospitals jointly learn to
+recognise general patterns in the images, and only
+afterwards does each hospital fine-tune the final
+decision step using a balancing technique that treats
+every subtype fairly, regardless of how rare it is
+locally.
+This two-step approach recovers most of the performance
+lost to the standard federated method, while keeping
+all patient data within each hospital at all times.
+
+We also built an educational web application that
+demonstrates the complete system in action, showing
+how doctors, patients, and researchers could each
+interact with such a platform in practice.
 
 \vspace{1em}
-\noindent\textbf{Keywords:} Federated learning, breast MRI,
-molecular subtype classification, class imbalance, FedSCRT,
-Gated Attention MIL, LDAM, SCAFFOLD, USTHB.
+\noindent\textbf{Keywords:} Federated learning, breast
+MRI, cancer subtype classification, data privacy,
+class imbalance, medical imaging.
